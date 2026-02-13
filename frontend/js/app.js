@@ -6,87 +6,186 @@ const addAvailabilityBtn = document.getElementById("addAvailabilityBtn");
 // Function to create a new module input form
 function createModuleBlock() {
   const moduleDiv = document.createElement("div");
-  moduleDiv.classList.add("border", "p-3", "mb-3", "rounded");
+  moduleDiv.classList.add("card", "shadow-sm", "mb-4");
 
   moduleDiv.innerHTML = `
-        <div class="mb-2">
-         <label class="form-label">Module Name</label>
-         <input type="text" class="form-control module-name" placeholder="Enter module name"/>
-        </div>
-
-        <div class="mb-2">
-        <label class="form-label">Importance</label>
-        <select class="form-select module-importance">
-            <option value="1">1 (LOW)</option>
-            <option value="2" selected>2 (MEDIUM)</option>
-            <option value="3">3 (HIGH)</option>
-        </select>
-        </div>
-
-        <div class="mb-2">
-         <label class="form-label">Module Deadline</label>
-         <input type="date" class="form-control module-deadline"/>
-        </div>
-
-        <button class="btn btn-sm btn-outline-danger removeModuleBtn">Remove Module</button>
-         Remove
-        </button>
-
-    `;
-
-  function createAvailabilityBlock() {
-    const slot = document.createElement("div");
-    slot.classList.add("border", "p-3", "mb-3", "rounded");
-
-    slot.innerHTML = `
-     <div class="mb-2">
-    <label class="form-label">Day</label>
-    <select class="form-select availability-day">
-    <option value="Monday">Monday</option>
-    <option value="Tuesday">Tuesday</option>
-    <option value="Wednesday">Wednesday</option>
-    <option value="Thursday">Thursday</option>
-    <option value="Friday">Friday</option>
-    <option value="Saturday">Saturday</option>
-    <option value="Sunday">Sunday</option>
-    </select>
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start mb-2">
+      <div class="w-100 me-2">
+        <label class="form-label">Module Name</label>
+        <input type="text" class="form-control module-name" placeholder="e.g., COM6016M" />
+      </div>
+      <button type="button" class="btn btn-sm btn-outline-danger removeModuleBtn mt-4">
+        <i class="bi bi-x-lg"></i>
+      </button>
     </div>
 
-    <div class="row g-2 mb-2">
-    <div class="col-6">
-    <label class="form-label">Start Time</label>
-    <input type="time" class="form-control availability-start"/>
-    </div>
-    <div class="col-6">
-    <label class="form-label">End Time</label>
-    <input type="time" class="form-control availability-end"/>
-    </div>
+    <div class="mb-2">
+      <label class="form-label">Importance (1–3)</label>
+      <select class="form-select module-importance">
+        <option value="1">1 (Low)</option>
+        <option value="2" selected>2 (Medium)</option>
+        <option value="3">3 (High)</option>
+      </select>
     </div>
 
-    <button class="btn btn-sm btn-outline-danger removeAvailabilityBtn">Remove Slot</button>
+    <hr />
+
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <strong>Tasks</strong>
+      <button type="button" class="btn btn-sm btn-outline-primary addTaskBtn">
+        <i class="bi bi-plus-lg"></i> Add Task
+      </button>
+    </div>
+
+    <div class="tasksContainer"></div>
+  </div>
 
   `;
 
-    availabilityContainer.appendChild(slot); // add remove button functionality
-    slot
-      .querySelector(".removeAvailabilityBtn")
-      .addEventListener("click", () => {
-        slot.remove();
-      });
-  }
-
-  createAvailabilityBlock(); // Create the first availability input block on page load
-
-  addAvailabilityBtn.addEventListener("click", createAvailabilityBlock);
-
   modulesContainer.appendChild(moduleDiv);
 
-  // add remove functionality to the remove button
-  moduleDiv.querySelector(".removeModuleBtn").addEventListener("click", () => {
-    moduleDiv.remove();
-  });
+  // Get the tasksContainer for adding the default task
+  const tasksContainer = moduleDiv.querySelector(".tasksContainer");
+
+  // Add one task by default
+  createTaskBlock(tasksContainer);
+}
+
+function createTaskBlock(container) {
+  const taskDiv = document.createElement("div");
+  taskDiv.classList.add("task-block");
+  taskDiv.classList.add("border", "rounded", "p-3", "mb-3", "bg-body-tertiary");
+
+  taskDiv.innerHTML = `
+    <div class="mb-2">
+      <label class="form-label">Task Title</label>
+      <input type="text" class="form-control task-title"
+        placeholder="e.g., Essay Draft" />
+    </div>
+
+    <div class="mb-2">
+      <label class="form-label">Task Description</label>
+      <textarea class="form-control task-desc" rows="2"
+        placeholder="Brief description of what needs to be done"></textarea>
+    </div>
+
+    <div class="row g-2 mb-2">
+      <div class="col-6">
+        <label class="form-label">Deadline</label>
+        <input type="date" class="form-control task-deadline" />
+      </div>
+      <div class="col-6">
+        <label class="form-label">Estimated Hours</label>
+        <input type="number" class="form-control task-hours" min="1" step="0.5" />
+      </div>
+    </div>
+
+    <button class="btn btn-sm btn-outline-danger removeTaskBtn">
+      Remove Task
+    </button>
+  `;
+
+  container.appendChild(taskDiv);
+}
+
+function createAvailabilityBlock() {
+  const slot = document.createElement("div");
+  slot.classList.add("border", "rounded", "p-3", "mb-3", "bg-body");
+  slot.classList.add("availability-block");
+
+  slot.innerHTML = `
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <strong class="small">Availability Slot</strong>
+      <button type="button" class="btn btn-sm btn-outline-danger removeAvailabilityBtn">
+        Remove
+      </button>
+    </div>
+
+    <div class="mb-2">
+      <label class="form-label">Day</label>
+      <select class="form-select availability-day">
+        <option value="Monday">Monday</option>
+        <option value="Tuesday">Tuesday</option>
+        <option value="Wednesday">Wednesday</option>
+        <option value="Thursday">Thursday</option>
+        <option value="Friday">Friday</option>
+        <option value="Saturday">Saturday</option>
+        <option value="Sunday">Sunday</option>
+      </select>
+    </div>
+
+    <div class="row g-2">
+      <div class="col-6">
+        <label class="form-label">Start</label>
+        <input type="time" class="form-control availability-start" />
+      </div>
+      <div class="col-6">
+        <label class="form-label">End</label>
+        <input type="time" class="form-control availability-end" />
+      </div>
+    </div>
+  `;
+
+  availabilityContainer.appendChild(slot);
+}
+
+function getModules() {
+  const modules = [];
+
+  document
+    .querySelectorAll("#modulesContainer > div")
+    .forEach((moduleBlock) => {
+      const module = {
+        name: moduleBlock.querySelector(".module-name").value.trim(),
+        importance: Number(
+          moduleBlock.querySelector(".module-importance").value,
+        ),
+        tasks: [],
+      };
+
+      moduleBlock
+        .querySelectorAll(".tasksContainer > div")
+        .forEach((taskBlock) => {
+          module.tasks.push({
+            title: taskBlock.querySelector(".task-title").value.trim(),
+            description: taskBlock.querySelector(".task-desc").value.trim(),
+            deadline: taskBlock.querySelector(".task-deadline").value,
+            estimated_hours: Number(
+              taskBlock.querySelector(".task-hours").value,
+            ),
+          });
+        });
+
+      modules.push(module);
+    });
+
+  return modules;
 }
 
 createModuleBlock(); // Create the first module input block on page load
+createAvailabilityBlock(); // Create the first availability block ONCE
 
+// Handle all availability-related clicks (remove availability)
+availabilityContainer.addEventListener("click", (e) => {
+  if (e.target.closest(".removeAvailabilityBtn")) {
+    e.target.closest(".availability-block").remove();
+  }
+});
+
+// Handle all module-related clicks (add task, remove module, remove task)
+modulesContainer.addEventListener("click", (e) => {
+  if (e.target.closest(".addTaskBtn")) {
+    const moduleCard = e.target.closest(".card");
+    const tasksContainer = moduleCard.querySelector(".tasksContainer");
+    createTaskBlock(tasksContainer);
+  } else if (e.target.closest(".removeModuleBtn")) {
+    e.target.closest(".card").remove();
+  } else if (e.target.closest(".removeTaskBtn")) {
+    e.target.closest(".task-block").remove();
+  }
+});
+
+// Handle static button clicks
 addModuleBtn.addEventListener("click", createModuleBlock);
+addAvailabilityBtn.addEventListener("click", createAvailabilityBlock);
