@@ -130,6 +130,7 @@ function createAvailabilityBlock() {
   availabilityContainer.appendChild(slot);
 }
 
+// Functions to get modules from the index page for schedule generation
 function getModules() {
   const modules = [];
 
@@ -163,6 +164,67 @@ function getModules() {
   return modules;
 }
 
+// funcitons to get availability slots from the index page for schedule generation
+function getAvailabilitySlots() {
+  const slots = [];
+
+  document
+    .querySelectorAll("#availabilityContainer .availability-block")
+    .forEach((block) => {
+      slots.push({
+        day: block.querySelector(".availability-day").value,
+        start: block.querySelector(".availability-start").value,
+        end: block.querySelector(".availability-end").value,
+      });
+    });
+
+  return slots;
+}
+
+// Form Validation (basic example, can be expanded)
+function validateForm() {
+  const modules = getModules();
+  const availability = getAvailabilitySlots();
+
+  if (modules.length === 0) {
+    return "Please add at least one module.";
+  }
+
+  for (const module of modules) {
+    if (!module.name) {
+      return "Please enter a name for all modules.";
+    }
+    if (module.tasks.length === 0) {
+      return `Please add at least one task for module ${module.name}.`;
+    }
+    for (const task of module.tasks) {
+      if (!task.title) {
+        return `Please enter a title for all tasks in module ${module.name}.`;
+      }
+      if (!task.deadline) {
+        return `Please set a deadline for all tasks in module ${module.name}.`;
+      }
+    }
+  }
+  // Validate availability slots
+  if (availability.length === 0) {
+    return "Please add at least one availability slot.";
+  }
+
+  for (const slot of availability) {
+    if (!slot.start || !slot.end) {
+      return "Please set both start and end times for all availability slots.";
+    }
+    if (slot.start >= slot.end) {
+      return "Start time must be before end time in availability slots.";
+    }
+  }
+
+  return null; // No errors
+}
+
+// Initial setup
+
 createModuleBlock(); // Create the first module input block on page load
 createAvailabilityBlock(); // Create the first availability block ONCE
 
@@ -189,3 +251,24 @@ modulesContainer.addEventListener("click", (e) => {
 // Handle static button clicks
 addModuleBtn.addEventListener("click", createModuleBlock);
 addAvailabilityBtn.addEventListener("click", createAvailabilityBlock);
+
+// Generate button test
+
+const generateBtn = document.getElementById("generateBtn");
+
+generateBtn.addEventListener("click", () => {
+  const error = validateForm();
+
+  if (error) {
+    alert(error); // Simple for now
+    return;
+  }
+
+  const modules = getModules();
+  const availability = getAvailabilitySlots();
+
+  console.log("Modules:", modules);
+  console.log("Availability:", availability);
+
+  // Later: call Flask here
+});
