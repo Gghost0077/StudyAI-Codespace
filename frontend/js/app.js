@@ -256,19 +256,36 @@ addAvailabilityBtn.addEventListener("click", createAvailabilityBlock);
 
 const generateBtn = document.getElementById("generateBtn");
 
-generateBtn.addEventListener("click", () => {
+generateBtn.addEventListener("click", async () => {
   const error = validateForm();
-
   if (error) {
     alert(error); // Simple for now
     return;
   }
 
-  const modules = getModules();
-  const availability = getAvailabilitySlots();
+  const payload = {
+    modules: getModules(),
+    availability: getAvailabilitySlots(),
+    ai_enabled: document.getElementById("aiEnabled").value,
+  };
 
-  console.log("Modules:", modules);
-  console.log("Availability:", availability);
+  const response = await fetch("http://127.0.0.1:5000/schedule", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
 
-  // Later: call Flask here
+  const result = await response.json();
+
+  console.log(result);
 });
+
+const modules = getModules();
+const availability = getAvailabilitySlots();
+
+console.log("Modules:", modules);
+console.log("Availability:", availability);
+
+// Later: call Flask here
