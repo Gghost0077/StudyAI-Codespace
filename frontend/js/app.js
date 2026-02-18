@@ -164,7 +164,7 @@ function getModules() {
   return modules;
 }
 
-// funcitons to get availability slots from the index page for schedule generation
+// futons to get availability slots from the index page for schedule generation
 function getAvailabilitySlots() {
   const slots = [];
 
@@ -269,17 +269,32 @@ generateBtn.addEventListener("click", async () => {
     ai_enabled: document.getElementById("aiEnabled").value,
   };
 
-  const response = await fetch("http://127.0.0.1:5000/schedule", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+  try {
+    const res = await fetch("http://127.0.0.1:5000/generate_schedule", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
 
-  const result = await response.json();
+    const data = await res.json();
 
-  console.log(result);
+    if (!res.ok) {
+      console.error("Backend error:", data);
+      alert(data.error || "Backend error");
+      return;
+    }
+
+    console.log("Schedule returned:", data);
+
+    // testing to put something simple in the UI:
+    const scheduleView = document.getElementById("scheduleView");
+    if (scheduleView) {
+      scheduleView.textContent = JSON.stringify(data, null, 2);
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Could not reach backend. Is Flask running?");
+  }
 });
 
 const modules = getModules();

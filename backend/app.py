@@ -1,10 +1,14 @@
 from flask import Flask, jsonify, request
 from scheduler import generate_schedule
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
+
 @app.route('/generate_schedule', methods=['POST'])
 def generate():
     data = request.get_json()
+    print("Incoming payload:", data)  # Debugging statement to check the incoming data
     
     if not data:
         return jsonify({'error': 'No input data provided'}), 400
@@ -19,6 +23,8 @@ def generate():
     schedule = generate_schedule(modules, availability, ai_enabled)
 
     return jsonify(schedule)
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
