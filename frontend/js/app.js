@@ -204,6 +204,9 @@ function validateForm() {
       if (!task.deadline) {
         return `Please set a deadline for all tasks in module ${module.name}.`;
       }
+      if (!task.estimated_hours || task.estimated_hours <= 0) {
+        return `Please enter a valid estimated hours for task "${task.title}" in module ${module.name}.`;
+      }
     }
   }
   // Validate availability slots
@@ -266,7 +269,7 @@ generateBtn.addEventListener("click", async () => {
   const payload = {
     modules: getModules(),
     availability: getAvailabilitySlots(),
-    ai_enabled: document.getElementById("aiEnabled").value,
+    ai_enabled: document.getElementById("aiEnabled").checked,
   };
 
   try {
@@ -285,22 +288,50 @@ generateBtn.addEventListener("click", async () => {
     }
 
     console.log("Schedule returned:", data);
-
-    // testing to put something simple in the UI:
+    // Render schedule nicely in the UI
     const scheduleView = document.getElementById("scheduleView");
+
     if (scheduleView) {
-      scheduleView.textContent = JSON.stringify(data, null, 2);
+      scheduleView.innerHTML = ""; // clear previous results
+
+      // AI status badge
+      const aiUsed = Boolean(data.ai_used);
+      const badgeWrapper = document.createElement("div");
+      badgeWrapper.classList.add("mb-3");
+
+      badgeWrapper.innerHTML = `
+    <span class="badge ${aiUsed ? "bg-success" : "bg-secondary"}">
+      ${aiUsed ? "AI enabled" : "Rule-based only"}
+    </span>
+  `;
+
+      scheduleView.appendChild(badgeWrapper);
+
+      // Render sessions
+      const sessions = Array.isArray(data.sessions) ? data.sessions : [];
+
+      if (sessions.length === 0) {
+        scheduleView.innerHTML += `<div class="text-muted">No sessions generated.</div>`;
+      } else {
+        sessions.forEach((session) => {
+          const card = document.createElement("div");
+          card.classList.add("card", "mb-3", "shadow-sm");
+
+          card.innerHTML = `
+        <div class="card-body">
+          <h6 class="card-title mb-1">${session.title ?? "Untitled Session"}</h6>
+          <div class="small"><strong>Module:</strong> ${session.module}</div>
+          <div class="small"><strong>Allocated Hours:</strong> ${session.allocated_hours}</div>
+          <div class="text-muted small mt-2">${session.note}</div>
+        </div>
+      `;
+
+          scheduleView.appendChild(card);
+        });
+      }
     }
   } catch (err) {
     console.error(err);
     alert("Could not reach backend. Is Flask running?");
   }
 });
-
-const modules = getModules();
-const availability = getAvailabilitySlots();
-
-console.log("Modules:", modules);
-console.log("Availability:", availability);
-
-// Later: call Flask here
