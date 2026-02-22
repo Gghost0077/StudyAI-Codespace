@@ -120,13 +120,14 @@ def generate_schedule(modules, availability, ai_enabled=False, chunk_minutes=60)
                     alloc = min(chunk_minutes, remaining, e - cursor, remaining)
                     start_time = minutes_to_time(cursor)
                     end_time = minutes_to_time(cursor + alloc)
+                    
                     sessions.append({
                         "module": task["module"],
                         "title": task["title"],
                         "date": d.isoformat(),
                         "start": start_time,
-                        "end": end_time
-                        "minutes": alloc
+                        "end": end_time,
+                        "minutes": alloc,
                         "source": "rule-based",
                         "note": f"scheduled before deadline {task['deadline'].isoformat()}",
                     })
