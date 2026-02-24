@@ -1,17 +1,17 @@
-from datetime import datetime, timedelta # for handling date and time
+from datetime import datetime, timedelta, date # for handling date and time
 
 # Mapping of weekday numbers to their names
 DAY_TO_WEEKDAY = {
-    0: "Monday",
-    1: "Tuesday", 
-    2: "Wednesday",
-    3: "Thursday",
-    4: "Friday",
-    5: "Saturday",
-    6: "Sunday"
+    "Monday": 0,
+    "Tuesday": 1,
+    "Wednesday": 2,
+    "Thursday": 3,
+    "Friday": 4,
+    "Saturday": 5,
+    "Sunday": 6
 }
 
-# Math tools allowing us to convert between time formats and do calculations for the schdeuler logic
+# Math tools allowing us to convert between time formats and do calculations for the scheduler logic
 def time_to_minutes(t: str) -> int:
     """Convert 'HH:MM' -> minutes since midnight (e.g. '08:30' -> 510)"""
     h, m = t.split(':')
@@ -56,28 +56,32 @@ def flatten_and_sort_tasks(modules):
     return tasks
 
 
-def build_weekly_avaliability(availability):
-    
-    weekly = {i: [] for i in range(7)}  # Initialize empty lists for each day of the week
+def build_weekly_availability(availability):
+    weekly = {i: [] for i in range(7)}
 
     for slot in availability:
-        wd = DAY_TO_WEEKDAY.get(slot.get("day"))
+        day = slot.get("day")
+        wd = DAY_TO_WEEKDAY.get(day)
+
         if wd is None:
             continue
 
         start = slot.get("start")
         end = slot.get("end")
+
         if not start or not end:
             continue
 
         s = time_to_minutes(start)
         e = time_to_minutes(end)
 
-        if s >= e:
+        if s < e:
             weekly[wd].append((s, e))
+
+    # Sort intervals for each day
     for wd in weekly:
-        weekly[wd].sort()  # Sort time slots for each day
-    
+        weekly[wd].sort()
+
     return weekly
 
 def build_free_calendar(today, last_day, weekly):
@@ -94,7 +98,13 @@ def generate_schedule(modules, availability, ai_enabled=False, chunk_minutes=60)
     if not tasks:
         return {"ai_used": bool(ai_enabled), "sessions": [], "warnings": ["No valid tasks with deadlines found."]}
     
-    weekly = build_weekly_avaliability(availability)
+    weekly = build_weekly_availability(availability)
+
+    print("Weekly keys:", list(weekly.keys()), flush=True)
+    print("Weekly Monday entry (0):", weekly.get(0), flush=True)
+    print("Weekly Tuesday entry (1):", weekly.get(1), flush=True)
+    print("Weekly Wednesday entry (2):", weekly.get(2), flush=True)
+
     today = datetime.now().date()
     last_day = max(t["deadline"] for t in tasks)
     free = build_free_calendar(today, last_day, weekly) 
