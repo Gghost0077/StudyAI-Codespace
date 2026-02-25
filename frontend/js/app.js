@@ -1,9 +1,15 @@
+//Frontend JavaScript for Schedule Generator App
+
+// DOM elements connecting Javascript to the static HTML elements.
 const modulesContainer = document.getElementById("modulesContainer");
 const addModuleBtn = document.getElementById("addModuleBtn");
 const availabilityContainer = document.getElementById("availabilityContainer");
 const addAvailabilityBtn = document.getElementById("addAvailabilityBtn");
 
-// Function to create a new module input form
+// UI Creation Functions
+// These functions create the necessary HTML blocks for modules, tasks, and availability slots dynamically
+// when the user clicks the "Add" buttons. They also set up the structure for user input
+// and the remove buttons for each block.
 function createModuleBlock() {
   const moduleDiv = document.createElement("div");
   moduleDiv.classList.add("card", "shadow-sm", "mb-4");
@@ -130,7 +136,10 @@ function createAvailabilityBlock() {
   availabilityContainer.appendChild(slot);
 }
 
+///////////////////////////////////////////////////////
 // Functions to get modules from the index page for schedule generation
+///////////////////////////////////////////////////////
+
 function getModules() {
   const modules = [];
 
@@ -164,7 +173,10 @@ function getModules() {
   return modules;
 }
 
-// futons to get availability slots from the index page for schedule generation
+///////////////////////////////////////////////////////
+///// functions to get availability slots from the index page for schedule generation
+///////////////////////////////////////////////////////
+
 function getAvailabilitySlots() {
   const slots = [];
 
@@ -181,7 +193,10 @@ function getAvailabilitySlots() {
   return slots;
 }
 
-// Form Validation (basic example, can be expanded)
+////////////////////////////////////////////
+//  Form Validation (basic example, can be expanded)
+////////////////////////////////////////////
+
 function validateForm() {
   const modules = getModules();
   const availability = getAvailabilitySlots();
@@ -255,10 +270,9 @@ modulesContainer.addEventListener("click", (e) => {
 addModuleBtn.addEventListener("click", createModuleBlock);
 addAvailabilityBtn.addEventListener("click", createAvailabilityBlock);
 
-// Generate button test
+
 
 const generateBtn = document.getElementById("generateBtn");
-
 generateBtn.addEventListener("click", async () => {
   const error = validateForm();
   if (error) {
@@ -317,14 +331,26 @@ generateBtn.addEventListener("click", async () => {
           const card = document.createElement("div");
           card.classList.add("card", "mb-3", "shadow-sm");
 
+          const title = session.title ?? "Untitled task";
+          const moduleName = session.module ?? "No module";
+
+          const when =
+            session.date && session.start && session.end
+              ? `${session.date} ${session.start}–${session.end}`
+              : "Time not set";
+
+          const mins = session.minutes ?? 0;
+          const hours = mins ? (mins / 60).toFixed(1) : "0.0";
+
           card.innerHTML = `
-        <div class="card-body">
-          <h6 class="card-title mb-1">${session.title ?? "Untitled Session"}</h6>
-          <div class="small"><strong>Module:</strong> ${session.module}</div>
-          <div class="small"><strong>Allocated Hours:</strong> ${session.allocated_hours}</div>
-          <div class="text-muted small mt-2">${session.note}</div>
-        </div>
-      `;
+            <div class="card-body">
+              <h6 class="card-title mb-1">${title}</h6>
+              <div class="small"><strong>Module:</strong> ${moduleName}</div>
+              <div class="small"><strong>When:</strong> ${when}</div>
+              <div class="small"><strong>Duration:</strong> ${mins} mins (${hours}h)</div>
+              ${session.note ? `<div class="text-muted small mt-2">${session.note}</div>` : ""}
+            </div>
+          `;
 
           scheduleView.appendChild(card);
         });
