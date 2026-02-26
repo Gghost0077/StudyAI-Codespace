@@ -270,8 +270,6 @@ modulesContainer.addEventListener("click", (e) => {
 addModuleBtn.addEventListener("click", createModuleBlock);
 addAvailabilityBtn.addEventListener("click", createAvailabilityBlock);
 
-
-
 const generateBtn = document.getElementById("generateBtn");
 generateBtn.addEventListener("click", async () => {
   const error = validateForm();
@@ -279,11 +277,14 @@ generateBtn.addEventListener("click", async () => {
     alert(error); // Simple for now
     return;
   }
-
+  //////////////////////////
+  //Data Package to get sent to backend
+  //////////////////////////
   const payload = {
     modules: getModules(),
     availability: getAvailabilitySlots(),
     ai_enabled: document.getElementById("aiEnabled").checked,
+    ai_strictness: document.getElementById("aiStrictness").value, // low|medium|high
   };
 
   try {
@@ -320,6 +321,47 @@ generateBtn.addEventListener("click", async () => {
   `;
 
       scheduleView.appendChild(badgeWrapper);
+
+      // Render AI explanations (if any)
+      if (
+        Array.isArray(data.ai_explanations) &&
+        data.ai_explanations.length > 0
+      ) {
+        const expl = document.createElement("div");
+        expl.className = "alert alert-info";
+        expl.innerHTML = `
+          <strong>AI explanations</strong>
+          <ul class="mb-0">
+            ${data.ai_explanations.map((e) => `<li>${e}</li>`).join("")}
+          </ul>
+        `;
+        scheduleView.appendChild(expl);
+      }
+
+      // Render AI suggestions (if any)
+      if (
+        Array.isArray(data.ai_suggestions) &&
+        data.ai_suggestions.length > 0
+      ) {
+        const sug = document.createElement("div");
+        sug.className = "card mb-3 shadow-sm";
+        sug.innerHTML = `
+          <div class="card-body">
+            <strong>AI suggestions</strong>
+            <ul class="mb-0">
+              ${data.ai_suggestions
+                .map(
+                  (s) =>
+                    `<li><strong>${s.task_title ?? "Task"}</strong>: ${
+                      s.explanation ?? JSON.stringify(s)
+                    }</li>`,
+                )
+                .join("")}
+            </ul>
+          </div>
+        `;
+        scheduleView.appendChild(sug);
+      }
 
       // Render sessions
       const sessions = Array.isArray(data.sessions) ? data.sessions : [];

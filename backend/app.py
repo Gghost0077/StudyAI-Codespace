@@ -21,11 +21,12 @@ def generate():
     modules = data.get('modules', [])
     availability = data.get('availability', [])
     ai_enabled = data.get('ai_enabled', False)
+    ai_strictness = data.get("ai_strictness", "medium")
 
     if not modules or not availability:
         return jsonify({'error': 'Modules and availability are required'}), 400
     
-    schedule = generate_schedule(modules, availability, ai_enabled)
+    schedule = generate_schedule(modules, availability, ai_enabled, ai_strictness)
 
     print("Returned keys:", schedule.keys())
     print("Returned sessions:", len(schedule.get("sessions", [])))

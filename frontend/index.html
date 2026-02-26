@@ -85,6 +85,17 @@ on the inputs provided by the user. -->
                   type="checkbox"
                   id="aiEnabled"
                 />
+                <div class="mb-2">
+                  <label class="form-label small" for="aiStrictness">AI strictness</label>
+                  <select id="aiStrictness" class="form-select form-select-sm">
+                    <option value="low">Low (suggest only)</option>
+                    <option value="medium" selected>Medium (suggest + light tweaks)</option>
+                    <option value="high">High (stronger suggestions)</option>
+                  </select>
+                  <div class="form-text small text-muted">
+                    AI is optional and should stay within your constraints.
+                  </div>
+                </div>
                 <label class="form-check-label" for="aiEnabled"
                   >Enable AI suggestions</label
                 >

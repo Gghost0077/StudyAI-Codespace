@@ -1,5 +1,8 @@
 from datetime import datetime, timedelta, date # for handling date and time
 
+
+
+
 # Mapping of weekday numbers to their names
 DAY_TO_WEEKDAY = {
     "Monday": 0,
@@ -10,6 +13,49 @@ DAY_TO_WEEKDAY = {
     "Saturday": 5,
     "Sunday": 6
 }
+
+
+#AI Additions for schedule generation - currently still being implemented and tested ( Currently a pplaceholder)
+# trying ot return tasks ai_suggestions and explanations.
+
+def apply_ai_personalisation(tasks, ai_enabled, ai_strictness):
+  
+    if not ai_enabled:
+        return tasks, [], []
+
+    suggestions = []
+    explanations = []
+
+    # Example behaviour:
+    # If strictness is high, slightly increase importance for near-deadline tasks.
+    today = datetime.now().date()
+
+    for t in tasks:
+        days_to_deadline = (t["deadline"] - today).days
+
+        if ai_strictness == "high" and days_to_deadline <= 3:
+            old = t["importance"]
+            t["importance"] = min(3, old + 1)
+
+            msg = f'Increased priority for "{t["title"]}" because deadline is in {days_to_deadline} days.'
+            suggestions.append({
+                "task_title": t["title"],
+                "priority_delta": t["importance"] - old,
+                "explanation": msg
+            })
+            explanations.append(msg)
+
+        elif ai_strictness == "medium" and days_to_deadline <= 2:
+            msg = f'Consider starting "{t["title"]}" earlier (deadline in {days_to_deadline} days).'
+            suggestions.append({
+                "task_title": t["title"],
+                "priority_delta": 0,
+                "explanation": msg
+            })
+            explanations.append(msg)
+
+    return tasks, suggestions, explanations
+
 
 # Math tools allowing us to convert between time formats and do calculations for the scheduler logic
 def time_to_minutes(t: str) -> int:
@@ -93,10 +139,22 @@ def build_free_calendar(today, last_day, weekly):
         d += timedelta(days=1)
     return free
 
-def generate_schedule(modules, availability, ai_enabled=False, chunk_minutes=60):
+def generate_schedule(modules, availability, ai_enabled=False, ai_strictness="medium", chunk_minutes=60):
     tasks = flatten_and_sort_tasks(modules)
     if not tasks:
-        return {"ai_used": bool(ai_enabled), "sessions": [], "warnings": ["No valid tasks with deadlines found."]}
+        return {"ai_used": bool(ai_enabled), 
+                "sessions": [], 
+                "warnings": ["No valid tasks with deadlines found."],
+                "ai_suggestions": [],
+                "ai_explanations": []
+                }
+    
+    tasks, ai_suggestions, ai_explanations = apply_ai_personalisation(
+        tasks, bool(ai_enabled), ai_strictness
+    )
+
+    # Re sorts after AI adjustments (if importance changed)
+    tasks.sort(key=lambda x: (x["deadline"], -x["importance"]))
     
     weekly = build_weekly_availability(availability)
 
@@ -151,7 +209,13 @@ def generate_schedule(modules, availability, ai_enabled=False, chunk_minutes=60)
         if remaining > 0:
             warnings.append(f"not enough time to fully schedule '{task['title']}' (missing {remaining}) minutes")
 
-    return {"ai_used": bool(ai_enabled), "sessions": sessions, "warnings": warnings}
+    return {"ai_used": bool(ai_enabled), 
+            "sessions": sessions, 
+            "warnings": warnings,
+            "ai_suggestions": ai_suggestions,
+            "ai_explanations": ai_explanations,
+            "ai_strictness": ai_strictness
+            }
 
     
     
