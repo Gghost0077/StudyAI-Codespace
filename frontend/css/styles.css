@@ -8,3 +8,83 @@
   overflow-y: auto;
   padding-right: 6px;
 }
+
+/* ===================
+Weekly  Calendar
+=================== */
+.weekly-calendar {
+  display: grid;
+  grid-template-columns: 70px repeat(7, 1fr);
+  border: 1px solid #dee2e6;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.calendar-header {
+  background: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 8px;
+}
+
+.time-col-header {
+  background: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.time-col {
+  border-right: 1px solid #dee2e6;
+  background: #fff;
+}
+
+.time-label {
+  height: 60px; /* 1 hour = 60px */
+  font-size: 0.75rem;
+  color: #6c757d;
+  padding: 4px 6px;
+  border-bottom: 1px solid #f1f3f5;
+}
+
+.day-col {
+  position: relative;
+  border-right: 1px solid #dee2e6;
+}
+
+.day-col:last-child {
+  border-right: none;
+}
+
+.day-grid {
+  position: relative;
+}
+
+.hour-line {
+  height: 60px;
+  border-bottom: 1px solid #f1f3f5;
+}
+
+.session-block {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  border-radius: 10px;
+  padding: 6px 8px;
+  font-size: 0.8rem;
+  overflow: hidden;
+  border: 1px solid #ced4da;
+  background: #e9ecef;
+}
+
+.session-block .title {
+  font-weight: 600;
+  font-size: 0.8rem;
+  line-height: 1.1;
+}
+
+.session-block .meta {
+  font-size: 0.75rem;
+  color: #495057;
+  margin-top: 2px;
+}

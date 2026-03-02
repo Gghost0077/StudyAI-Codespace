@@ -270,6 +270,148 @@ modulesContainer.addEventListener("click", (e) => {
 addModuleBtn.addEventListener("click", createModuleBlock);
 addAvailabilityBtn.addEventListener("click", createAvailabilityBlock);
 
+//////////////////////////////////////////
+// Calendar Renderer Function
+//////////////////////////////////////////
+
+function timeToMinutes(t) {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+
+//Converts "YYYY-MM-DD" to Date object
+function parseISODate(dateStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+// Finds the Monday of the week for a given date for the Anchor of the week in the calendar view
+function getMonday(d) {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = (day === 0 ? -6 : 1) - day; // shift to Monday
+  date.setDate(date.getDate() + diff);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+// Build list of the 7 Dates
+function buildWeekDays(weekStart) {
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + i);
+    return d;
+  });
+}
+
+// Main function to render the weekly calendar view based on the generated schedule sessions
+function renderWeeklyCalendar(container, sessions) {
+  container.innerHTML = ""; // Clear previous content
+
+  const valid = sessions.filter((s) => s.date && s.start && s.end); // Only consider sessions with valid date and time
+
+  if (valid.length === 0) {
+    container.innerHTML = `<div class="text-muted">No sessions with valid date/time to display.</div>`;
+    return;
+  }
+
+  const earliest = valid
+    .map((s) => parseISODate(s.date))
+    .sort((a, b) => a - b)[0];
+
+  const weekStart = getMonday(earliest);
+  const days = buildWeekDays(weekStart);
+
+  // Header row with days of the week
+  const cal = document.createElement("div");
+  cal.className = "weekly-calendar";
+
+  const empty = document.createElement("div");
+  empty.className = "calendar-header time-col-header";
+  cal.appendChild(empty);
+
+  days.forEach((d) => {
+    const head = document.createElement("div");
+    head.className = "calendar-header";
+    head.textContent = d.toLocaleDateString(undefined, {
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+    });
+    cal.appendChild(head);
+  });
+
+  // Time slots (e.g., 8:00 to 20:00)
+
+  const startHour = 6;
+  const endHour = 22;
+
+  const timeCol = document.createElement("div");
+  timeCol.className = "time-col";
+
+  for (let hour = startHour; hour <= endHour; hour++) {
+    const label = document.createElement("div");
+    label.className = "time-label";
+    label.textContent = `${String(hour).padStart(2, "0")}:00`;
+    timeCol.appendChild(label);
+  }
+
+  cal.appendChild(timeCol);
+
+  // Add 7 empty day columns with grids for sessions to be placed in
+  const hourHeight = 60; // pixels per hour
+
+  days.forEach((dayDate) => {
+    const dayCol = document.createElement("div");
+    dayCol.className = "day-col";
+
+    const grid = document.createElement("div");
+    grid.className = "day-grid";
+    grid.style.height = `${(endHour - startHour) * hourHeight}px`;
+
+    for (let hour = startHour; hour < endHour; hour++) {
+      const line = document.createElement("div");
+      line.className = "hour-line";
+      grid.appendChild(line);
+    }
+
+    // Place sessions in the correct position
+
+    const dayKey = dayDate.toISOString().slice(0, 10); // "YYYY-MM-DD"
+    const daySessions = valid.filter((s) => s.date === dayKey);
+
+    daySessions.forEach((s) => {
+      const startMins = timeToMinutes(s.start);
+      const endMins = timeToMinutes(s.end);
+
+      const startClamp = Math.max(startMins, startHour * 60);
+      const endClamp = Math.min(endMins, endHour * 60);
+      if (endClamp <= startClamp) return; // Skip sessions outside of display range
+
+      const top = ((startClamp - startHour * 60) / 60) * hourHeight;
+      const height = ((endClamp - startClamp) / 60) * hourHeight;
+
+      const block = document.createElement("div");
+      block.className = "session-block";
+      block.style.top = `${top}px`;
+      block.style.height = `${height}px`;
+
+      block.innerHTML = `
+        <div class="title">${s.title ?? "Untitled"}</div>
+        <div class="meta">${s.module ?? ""} • ${s.start}–${s.end}</div>
+  `;
+      grid.appendChild(block);
+    });
+
+    dayCol.appendChild(grid);
+    cal.appendChild(dayCol);
+  });
+
+  container.appendChild(cal);
+}
+
+/////////////////////////////////////////////
+
 const generateBtn = document.getElementById("generateBtn");
 generateBtn.addEventListener("click", async () => {
   const error = validateForm();
@@ -369,37 +511,14 @@ generateBtn.addEventListener("click", async () => {
       if (sessions.length === 0) {
         scheduleView.innerHTML += `<div class="text-muted">No sessions generated.</div>`;
       } else {
-        sessions.forEach((session) => {
-          const card = document.createElement("div");
-          card.classList.add("card", "mb-3", "shadow-sm");
-
-          const title = session.title ?? "Untitled task";
-          const moduleName = session.module ?? "No module";
-
-          const when =
-            session.date && session.start && session.end
-              ? `${session.date} ${session.start}–${session.end}`
-              : "Time not set";
-
-          const mins = session.minutes ?? 0;
-          const hours = mins ? (mins / 60).toFixed(1) : "0.0";
-
-          card.innerHTML = `
-            <div class="card-body">
-              <h6 class="card-title mb-1">${title}</h6>
-              <div class="small"><strong>Module:</strong> ${moduleName}</div>
-              <div class="small"><strong>When:</strong> ${when}</div>
-              <div class="small"><strong>Duration:</strong> ${mins} mins (${hours}h)</div>
-              ${session.note ? `<div class="text-muted small mt-2">${session.note}</div>` : ""}
-            </div>
-          `;
-
-          scheduleView.appendChild(card);
+        renderWeeklyCalendar(scheduleView, sessions, {
+          startHour: 6,
+          endHour: 22,
         });
       }
     }
   } catch (err) {
-    console.error(err);
-    alert("Could not reach backend. Is Flask running?");
+    console.error("Fetch Failed", err);
+    alert("Could not reach backend. Is Flask running?" + err.message);
   }
 });
