@@ -136,6 +136,28 @@ function createAvailabilityBlock() {
   availabilityContainer.appendChild(slot);
 }
 
+///////////////////////////////
+// Availability preset helpers
+///////////////////////////////
+
+function addAvailabilitySlot(day, start, end) {
+  // create a new blank slot in the UI
+  createAvailabilityBlock();
+
+  // get the slot we just added (last one)
+  const blocks = availabilityContainer.querySelectorAll(".availability-block");
+  const newBlock = blocks[blocks.length - 1];
+
+  // fill in values
+  newBlock.querySelector(".availability-day").value = day;
+  newBlock.querySelector(".availability-start").value = start; // "HH:MM"
+  newBlock.querySelector(".availability-end").value = end; // "HH:MM"
+}
+
+function clearAvailabilitySlots() {
+  availabilityContainer.innerHTML = "";
+}
+
 ///////////////////////////////////////////////////////
 // Functions to get modules from the index page for schedule generation
 ///////////////////////////////////////////////////////
@@ -269,6 +291,46 @@ modulesContainer.addEventListener("click", (e) => {
 // Handle static button clicks
 addModuleBtn.addEventListener("click", createModuleBlock);
 addAvailabilityBtn.addEventListener("click", createAvailabilityBlock);
+
+////////////////////
+// Availability Preset Buttons
+////////////////////
+
+document
+  .getElementById("presetWeekdayEvenings")
+  .addEventListener("click", () => {
+    // Mon–Fri 18:00–20:00
+    clearAvailabilitySlots();
+    ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].forEach((day) => {
+      addAvailabilitySlot(day, "18:00", "20:00");
+    });
+  });
+
+document
+  .getElementById("presetWeekdayMornings")
+  .addEventListener("click", () => {
+    // Mon–Fri 09:00–11:00
+    clearAvailabilitySlots();
+    ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].forEach((day) => {
+      addAvailabilitySlot(day, "09:00", "11:00");
+    });
+  });
+
+document.getElementById("presetWeekends").addEventListener("click", () => {
+  // Sat–Sun 10:00–13:00
+  clearAvailabilitySlots();
+  ["Saturday", "Sunday"].forEach((day) => {
+    addAvailabilitySlot(day, "10:00", "13:00");
+  });
+});
+
+document
+  .getElementById("presetClearAvailability")
+  .addEventListener("click", () => {
+    clearAvailabilitySlots();
+    // optional: add one blank slot back so the UI isn't empty
+    createAvailabilityBlock();
+  });
 
 //////////////////////////////////////////
 // Calendar Renderer Function
