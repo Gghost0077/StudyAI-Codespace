@@ -526,6 +526,27 @@ generateBtn.addEventListener("click", async () => {
 
       scheduleView.appendChild(badgeWrapper);
 
+      // Render AI tips
+      if (Array.isArray(data.ai_tips) && data.ai_tips.length > 0) {
+        const tipsCard = document.createElement("div");
+        tipsCard.className = "card mb-3 shadow-sm";
+        tipsCard.innerHTML = `
+            <div class="card-body">
+            <strong>Study tips</strong>
+            <ul class="mb-0">
+            ${data.ai_tips
+              .map(
+                (t) =>
+                  `<li><strong>${t.task_title ?? "Task"}</strong> (${t.module ?? "Module"}): ${t.tip}</li>`,
+              )
+              .join("")}
+              </ul>
+            </div>
+          `;
+
+        scheduleView.appendChild(tipsCard);
+      }
+
       // Render AI explanations (if any)
       if (
         Array.isArray(data.ai_explanations) &&
@@ -573,7 +594,9 @@ generateBtn.addEventListener("click", async () => {
       if (sessions.length === 0) {
         scheduleView.innerHTML += `<div class="text-muted">No sessions generated.</div>`;
       } else {
-        renderWeeklyCalendar(scheduleView, sessions, {
+        const calHost = document.createElement("div");
+        scheduleView.appendChild(calHost);
+        renderWeeklyCalendar(calHost, sessions, {
           startHour: 6,
           endHour: 22,
         });

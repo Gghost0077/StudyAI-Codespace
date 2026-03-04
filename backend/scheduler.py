@@ -56,6 +56,40 @@ def apply_ai_personalisation(tasks, ai_enabled, ai_strictness):
 
     return tasks, suggestions, explanations
 
+#More Placeholder AI to get ready for AI implemenations tips for schedule generation 
+def generate_study_tips_placeholder(tasks, ai_enabled):
+    """
+    Placeholder AI tips:
+    Uses simple keyword rules on title/description to generate study advice.
+    Returns a list of tips 
+    """
+    if not ai_enabled:
+        return []
+
+    tips = []
+    for t in tasks:
+        text = f'{t.get("title","")} {t.get("description","")}'.lower()
+
+        # Very simple keyword-based tips (placeholder)
+        if any(k in text for k in ["essay", "report", "write", "draft", "structure"]):
+            tip = "Break writing into chunks: outline → section drafts → edit pass → final proofread."
+        elif any(k in text for k in ["exam", "revision", "test", "quiz"]):
+            tip = "Use active recall + spaced repetition: practice questions, flashcards, and review over multiple days."
+        elif any(k in text for k in ["coding", "program", "bug", "debug", "implement"]):
+            tip = "Work in small increments: implement one feature, test, commit, then move to the next."
+        elif any(k in text for k in ["research", "literature", "paper", "reading"]):
+            tip = "Skim first (abstract/intro/conclusion), then deep read; take notes as 3 bullet summaries."
+        else:
+            tip = "Define a clear mini-goal for each session (e.g., 1 subsection, 10 flashcards, 1 practice set)."
+
+        tips.append({
+            "task_title": t["title"],
+            "module": t["module"],
+            "tip": tip
+        })
+
+    return tips
+
 
 # Math tools allowing us to convert between time formats and do calculations for the scheduler logic
 def time_to_minutes(t: str) -> int:
@@ -153,6 +187,8 @@ def generate_schedule(modules, availability, ai_enabled=False, ai_strictness="me
         tasks, bool(ai_enabled), ai_strictness
     )
 
+    ai_tips = generate_study_tips_placeholder(tasks, bool(ai_enabled))
+
     # Re sorts after AI adjustments (if importance changed)
     tasks.sort(key=lambda x: (x["deadline"], -x["importance"]))
     
@@ -214,7 +250,8 @@ def generate_schedule(modules, availability, ai_enabled=False, ai_strictness="me
             "warnings": warnings,
             "ai_suggestions": ai_suggestions,
             "ai_explanations": ai_explanations,
-            "ai_strictness": ai_strictness
+            "ai_strictness": ai_strictness,
+            "ai_tips": ai_tips
             }
 
     
