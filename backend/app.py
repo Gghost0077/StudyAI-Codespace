@@ -2,6 +2,9 @@ from flask import Flask, jsonify, request
 from scheduler import generate_schedule
 from flask_cors import CORS
 
+from dotenv import load_dotenv
+load_dotenv()
+
 app = Flask(__name__)   
 CORS(app)
 
