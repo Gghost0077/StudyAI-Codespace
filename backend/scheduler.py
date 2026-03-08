@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta, date # for handling date and time
 
+from ai_service import get_study_tips_openai
+
 
 
 
@@ -187,7 +189,15 @@ def generate_schedule(modules, availability, ai_enabled=False, ai_strictness="me
         tasks, bool(ai_enabled), ai_strictness
     )
 
-    ai_tips = generate_study_tips_placeholder(tasks, bool(ai_enabled))
+    ai_tips = []
+    if bool(ai_enabled):
+        try:
+            ai_tips = get_study_tips_openai(tasks, strictness=ai_strictness)
+        except Exception as e:
+            print("AI tip generation failed:", e, flush=True)
+            ai_tips = generate_study_tips_placeholder(tasks, True)
+    else:
+        ai_tips = generate_study_tips_placeholder(tasks, False)
 
     # Re sorts after AI adjustments (if importance changed)
     tasks.sort(key=lambda x: (x["deadline"], -x["importance"]))
@@ -221,7 +231,7 @@ def generate_schedule(modules, availability, ai_enabled=False, ai_strictness="me
             for (s, e) in intervals:
                 cursor = s
                 while cursor < e and remaining > 0:
-                    alloc = min(chunk_minutes, remaining, e - cursor, remaining)
+                    alloc = min(chunk_minutes, e - cursor, remaining)
                     start_time = minutes_to_time(cursor)
                     end_time = minutes_to_time(cursor + alloc)
                     
