@@ -215,6 +215,90 @@ function getAvailabilitySlots() {
   return slots;
 }
 
+// Save current website state so schedule doesnt disapear when reset
+function saveAppState() {
+  const appState = {
+    modules: getModules(),
+    availability: getAvailabilitySlots(),
+    ai_enabled: document.getElementById("aiEnabled")?.checked ?? false,
+    ai_strictness: document.getElementById("aiStrictness")?.value ?? "medium",
+  };
+
+  localStorage.setItem("studyAIState", JSON.stringify(appState));
+}
+
+// Loads the app state
+function loadAppState() {
+  const saved = localStorage.getItem("studyAIState");
+  if (!saved) return;
+
+  const state = JSON.parse(saved);
+
+  // Clear existing UI first
+  modulesContainer.innerHTML = "";
+  availabilityContainer.innerHTML = "";
+
+  // Restore modules and tasks
+  if (Array.isArray(state.modules) && state.modules.length > 0) {
+    state.modules.forEach((module) => {
+      createModuleBlock();
+
+      const moduleBlocks = modulesContainer.querySelectorAll(".card");
+      const moduleBlock = moduleBlocks[moduleBlocks.length - 1];
+
+      moduleBlock.querySelector(".module-name").value = module.name ?? "";
+      moduleBlock.querySelector(".module-importance").value = String(
+        module.importance ?? 2,
+      );
+
+      const tasksContainer = moduleBlock.querySelector(".tasksContainer");
+      tasksContainer.innerHTML = "";
+
+      if (Array.isArray(module.tasks) && module.tasks.length > 0) {
+        module.tasks.forEach((task) => {
+          createTaskBlock(tasksContainer);
+
+          const taskBlocks = tasksContainer.querySelectorAll(".task-block");
+          const taskBlock = taskBlocks[taskBlocks.length - 1];
+
+          taskBlock.querySelector(".task-title").value = task.title ?? "";
+          taskBlock.querySelector(".task-desc").value = task.description ?? "";
+          taskBlock.querySelector(".task-deadline").value = task.deadline ?? "";
+          taskBlock.querySelector(".task-hours").value =
+            task.estimated_hours ?? "";
+        });
+      }
+    });
+  } else {
+    createModuleBlock();
+  }
+
+  // Restore availability
+  if (Array.isArray(state.availability) && state.availability.length > 0) {
+    state.availability.forEach((slot) => {
+      createAvailabilityBlock();
+
+      const blocks = availabilityContainer.querySelectorAll(
+        ".availability-block",
+      );
+      const block = blocks[blocks.length - 1];
+
+      block.querySelector(".availability-day").value = slot.day ?? "Monday";
+      block.querySelector(".availability-start").value = slot.start ?? "";
+      block.querySelector(".availability-end").value = slot.end ?? "";
+    });
+  } else {
+    createAvailabilityBlock();
+  }
+
+  // Restore AI settings
+  const aiEnabled = document.getElementById("aiEnabled");
+  if (aiEnabled) aiEnabled.checked = state.ai_enabled ?? false;
+
+  const aiStrictness = document.getElementById("aiStrictness");
+  if (aiStrictness) aiStrictness.value = state.ai_strictness ?? "medium";
+}
+
 ////////////////////////////////////////////
 //  Form Validation (basic example, can be expanded)
 ////////////////////////////////////////////
@@ -265,8 +349,7 @@ function validateForm() {
 
 // Initial setup
 
-createModuleBlock(); // Create the first module input block on page load
-createAvailabilityBlock(); // Create the first availability block ONCE
+loadAppState();
 
 // Handle all availability-related clicks (remove availability)
 availabilityContainer.addEventListener("click", (e) => {
@@ -291,6 +374,20 @@ modulesContainer.addEventListener("click", (e) => {
 // Handle static button clicks
 addModuleBtn.addEventListener("click", createModuleBlock);
 addAvailabilityBtn.addEventListener("click", createAvailabilityBlock);
+
+// Event Listeners for save app state and load app state
+modulesContainer.addEventListener("input", saveAppState);
+availabilityContainer.addEventListener("input", saveAppState);
+
+const aiEnabled = document.getElementById("aiEnabled");
+if (aiEnabled) {
+  aiEnabled.addEventListener("change", saveAppState);
+}
+
+const aiStrictness = document.getElementById("aiStrictness");
+if (aiStrictness) {
+  aiStrictness.addEventListener("change", saveAppState);
+}
 
 ////////////////////
 // Availability Preset Buttons
@@ -481,6 +578,9 @@ generateBtn.addEventListener("click", async () => {
     alert(error); // Simple for now
     return;
   }
+  // Show loading state
+  generateBtn.disabled = true;
+  generateBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Generating...`;
   //////////////////////////
   //Data Package to get sent to backend
   //////////////////////////
@@ -525,6 +625,46 @@ generateBtn.addEventListener("click", async () => {
   `;
 
       scheduleView.appendChild(badgeWrapper);
+
+      //////////////////////////////////////
+      // Schedule summary bar (showing small card with what the schedule generated has)
+      /////////////////////////////////////
+      const sessions = Array.isArray(data.sessions) ? data.sessions : [];
+      const warnings = Array.isArray(data.warnings) ? data.warnings : [];
+
+      const totalMinutes = sessions.reduce(
+        (sum, s) => sum + (s.minutes ?? 0),
+        0,
+      );
+      const totalHours = (totalMinutes / 60).toFixed(1);
+
+      const summaryBar = document.createElement("div");
+      summaryBar.className = "card mb-3 shadow-sm";
+
+      summaryBar.innerHTML = `
+      <div class="card-body py-2">
+        <div class="row text-center">
+          <div class="col-md-3">
+            <div class="fw-semibold">${sessions.length}</div>
+            <small class="text-muted">Sessions</small>
+          </div>
+          <div class="col-md-3">
+            <div class="fw-semibold">${totalHours}</div>
+            <small class="text-muted">Planned hours</small>
+          </div>
+          <div class="col-md-3">
+            <div class="fw-semibold">${aiUsed ? "On" : "Off"}</div>
+            <small class="text-muted">AI</small>
+          </div>
+          <div class="col-md-3">
+            <div class="fw-semibold">${warnings.length}</div>
+            <small class="text-muted">Warnings</small>
+          </div>
+        </div>
+      </div>
+    `;
+
+      scheduleView.appendChild(summaryBar);
 
       // Render AI tips
       if (Array.isArray(data.ai_tips) && data.ai_tips.length > 0) {
@@ -589,8 +729,6 @@ generateBtn.addEventListener("click", async () => {
       }
 
       // Render sessions
-      const sessions = Array.isArray(data.sessions) ? data.sessions : [];
-
       if (sessions.length === 0) {
         scheduleView.innerHTML += `<div class="text-muted">No sessions generated.</div>`;
       } else {
@@ -602,8 +740,16 @@ generateBtn.addEventListener("click", async () => {
         });
       }
     }
+    // Restore button after successful generation
+    generateBtn.disabled = false;
+    generateBtn.innerHTML = `<i class="bi bi-magic me-1"></i>Generate Schedule`;
   } catch (err) {
     console.error("Fetch Failed", err);
-    alert("Could not reach backend. Is Flask running?" + err.message);
+
+    // Restore button if request fails
+    generateBtn.disabled = false;
+    generateBtn.innerHTML = `<i class="bi bi-magic me-1"></i>Generate Schedule`;
+
+    alert("Could not reach backend. Is Flask running? " + err.message);
   }
 });
