@@ -88,3 +88,27 @@ Weekly  Calendar
   color: #495057;
   margin-top: 2px;
 }
+.calendar-session {
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 0.8rem;
+  margin: 2px;
+  cursor: default;
+  transition:
+    transform 0.1s ease,
+    box-shadow 0.1s ease;
+}
+
+.calendar-session:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+.calendar-session strong {
+  display: block;
+  font-weight: 600;
+}
+
+.calendar-session small {
+  opacity: 0.7;
+}

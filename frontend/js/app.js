@@ -430,7 +430,7 @@ document
   });
 
 //////////////////////////////////////////
-// Calendar Renderer Function
+// Calendar Renderer Function Helper
 //////////////////////////////////////////
 
 function timeToMinutes(t) {
@@ -463,14 +463,50 @@ function buildWeekDays(weekStart) {
   });
 }
 
+function getModuleColor(moduleName) {
+  const colors = [
+    { bg: "#e9f2ff", border: "#4a7cff" },
+    { bg: "#eefaf0", border: "#2e9d57" },
+    { bg: "#fff4e6", border: "#f08c00" },
+    { bg: "#f3e8ff", border: "#8b5cf6" },
+    { bg: "#ffe8e8", border: "#e03131" },
+    { bg: "#e6fcf5", border: "#0ca678" },
+  ];
+
+  let hash = 0;
+  const text = moduleName || "default";
+
+  for (let i = 0; i < text.length; i++) {
+    hash += text.charCodeAt(i);
+  }
+
+  return colors[hash % colors.length];
+}
+////////////////////////////////////////////////
 // Main function to render the weekly calendar view based on the generated schedule sessions
+////////////////////////////////////////////////
+
+// allows for changing of weeks in calendar
+let currentCalendarWeekStart = null; // stores the monday of the week currently showing
+let latestCalendarSessions = []; // stores the last generated calendar allowing us to go back and forth
+
 function renderWeeklyCalendar(container, sessions) {
   container.innerHTML = ""; // Clear previous content
 
   const valid = sessions.filter((s) => s.date && s.start && s.end); // Only consider sessions with valid date and time
 
   if (valid.length === 0) {
-    container.innerHTML = `<div class="text-muted">No sessions with valid date/time to display.</div>`;
+    container.innerHTML = `
+      <div class="card shadow-sm">
+        <div class="card-body text-center py-4">
+          <div class="fs-5 mb-2">No schedule generated yet</div>
+          <div class="text-muted small">
+            Add modules, tasks, and availability, then click
+            <strong>Generate Schedule</strong> to view your weekly plan.
+          </div>
+        </div>
+      </div>
+    `;
     return;
   }
 
@@ -478,8 +514,44 @@ function renderWeeklyCalendar(container, sessions) {
     .map((s) => parseISODate(s.date))
     .sort((a, b) => a - b)[0];
 
-  const weekStart = getMonday(earliest);
+  if (!currentCalendarWeekStart) {
+    currentCalendarWeekStart = getMonday(earliest);
+  }
+
+  const weekStart = new Date(currentCalendarWeekStart);
   const days = buildWeekDays(weekStart);
+
+  // Calendar Header
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+
+  const header = document.createElement("div");
+  header.className = "d-flex justify-content-between align-items-center mb-3";
+
+  header.innerHTML = `
+    <div>
+      <h5 class="mb-0">Weekly Schedule</h5>
+      <small class="text-muted">
+        Week of ${weekStart.toLocaleDateString(undefined, {
+          day: "2-digit",
+          month: "short",
+        })} – ${weekEnd.toLocaleDateString(undefined, {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        })}
+      </small>
+    </div>
+
+    <div class="btn-group btn-group-sm" role="group">
+      <button type="button" class="btn btn-outline-secondary" id="prevWeekBtn">
+        ← Previous
+      </button>
+      <button type="button" class="btn btn-outline-secondary" id="nextWeekBtn">
+        Next →
+      </button>
+    </div>
+  `;
 
   // Header row with days of the week
   const cal = document.createElement("div");
@@ -551,9 +623,13 @@ function renderWeeklyCalendar(container, sessions) {
       const height = ((endClamp - startClamp) / 60) * hourHeight;
 
       const block = document.createElement("div");
-      block.className = "session-block";
+      block.className = "calendar-session shadow-sm";
       block.style.top = `${top}px`;
       block.style.height = `${height}px`;
+      //
+      const moduleColor = getModuleColor(s.module);
+      block.style.backgroundColor = moduleColor.bg;
+      block.style.borderLeft = `4px solid ${moduleColor.border}`;
 
       block.innerHTML = `
         <div class="title">${s.title ?? "Untitled"}</div>
@@ -566,7 +642,29 @@ function renderWeeklyCalendar(container, sessions) {
     cal.appendChild(dayCol);
   });
 
+  container.appendChild(header);
   container.appendChild(cal);
+
+  const prevWeekBtn = container.querySelector("#prevWeekBtn");
+  const nextWeekBtn = container.querySelector("#nextWeekBtn");
+
+  if (prevWeekBtn) {
+    prevWeekBtn.addEventListener("click", () => {
+      const newWeek = new Date(currentCalendarWeekStart);
+      newWeek.setDate(newWeek.getDate() - 7);
+      currentCalendarWeekStart = newWeek;
+      renderWeeklyCalendar(container, latestCalendarSessions);
+    });
+  }
+
+  if (nextWeekBtn) {
+    nextWeekBtn.addEventListener("click", () => {
+      const newWeek = new Date(currentCalendarWeekStart);
+      newWeek.setDate(newWeek.getDate() + 7);
+      currentCalendarWeekStart = newWeek;
+      renderWeeklyCalendar(container, latestCalendarSessions);
+    });
+  }
 }
 
 /////////////////////////////////////////////
@@ -630,6 +728,9 @@ generateBtn.addEventListener("click", async () => {
       // Schedule summary bar (showing small card with what the schedule generated has)
       /////////////////////////////////////
       const sessions = Array.isArray(data.sessions) ? data.sessions : [];
+      latestCalendarSessions = sessions;
+      currentCalendarWeekStart = null;
+
       const warnings = Array.isArray(data.warnings) ? data.warnings : [];
 
       const totalMinutes = sessions.reduce(
@@ -665,6 +766,20 @@ generateBtn.addEventListener("click", async () => {
     `;
 
       scheduleView.appendChild(summaryBar);
+      // Render scheduling warnings
+      if (warnings.length > 0) {
+        const warningCard = document.createElement("div");
+        warningCard.className = "alert alert-warning mb-3";
+
+        warningCard.innerHTML = `
+          <strong>Schedule warnings</strong>
+          <ul class="mb-0 mt-2">
+            ${warnings.map((w) => `<li>${w}</li>`).join("")}
+          </ul>
+        `;
+
+        scheduleView.appendChild(warningCard);
+      }
 
       // Render AI tips
       if (Array.isArray(data.ai_tips) && data.ai_tips.length > 0) {
@@ -730,7 +845,15 @@ generateBtn.addEventListener("click", async () => {
 
       // Render sessions
       if (sessions.length === 0) {
-        scheduleView.innerHTML += `<div class="text-muted">No sessions generated.</div>`;
+        scheduleView.innerHTML += `
+        <div class="text-center text-muted py-4">
+          <div class="mb-2 fs-5">No schedule generated yet</div>
+          <div class="small">
+            Add modules, tasks, and availability, then click
+            <strong>Generate Schedule</strong>.
+          </div>
+        </div>
+        `;
       } else {
         const calHost = document.createElement("div");
         scheduleView.appendChild(calHost);
