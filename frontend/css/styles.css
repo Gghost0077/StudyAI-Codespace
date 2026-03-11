@@ -12,6 +12,11 @@
 /* ===================
 Weekly  Calendar
 =================== */
+
+.card ul {
+  padding-left: 1rem;
+}
+
 .weekly-calendar {
   display: grid;
   grid-template-columns: 70px repeat(7, 1fr);

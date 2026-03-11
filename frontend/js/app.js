@@ -6,6 +6,37 @@ const addModuleBtn = document.getElementById("addModuleBtn");
 const availabilityContainer = document.getElementById("availabilityContainer");
 const addAvailabilityBtn = document.getElementById("addAvailabilityBtn");
 
+// Deadline Function to build deadline data to show in calendar
+
+function buildUpcomingDeadlines(modules) {
+  const deadlines = [];
+
+  modules.forEach((module) => {
+    (module.tasks || []).forEach((task) => {
+      if (!task.deadline) return;
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const deadlineDate = new Date(task.deadline);
+      deadlineDate.setHours(0, 0, 0, 0);
+
+      const diffMs = deadlineDate - today;
+      const daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+      deadlines.push({
+        module: module.name,
+        title: task.title,
+        deadline: task.deadline,
+        daysRemaining,
+      });
+    });
+  });
+
+  deadlines.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+  return deadlines;
+}
+
 // UI Creation Functions
 // These functions create the necessary HTML blocks for modules, tasks, and availability slots dynamically
 // when the user clicks the "Add" buttons. They also set up the structure for user input
@@ -689,6 +720,8 @@ generateBtn.addEventListener("click", async () => {
     ai_strictness: document.getElementById("aiStrictness").value, // low|medium|high
   };
 
+  const upcomingDeadlines = buildUpcomingDeadlines(payload.modules);
+
   try {
     const res = await fetch("http://127.0.0.1:5000/generate_schedule", {
       method: "POST",
@@ -766,6 +799,51 @@ generateBtn.addEventListener("click", async () => {
     `;
 
       scheduleView.appendChild(summaryBar);
+
+      // Render upcoming deadlines card
+      if (upcomingDeadlines.length > 0) {
+        const deadlineCard = document.createElement("div");
+        deadlineCard.className = "card mb-3 shadow-sm";
+
+        deadlineCard.innerHTML = `
+          <div class="card-body">
+            <strong>Upcoming deadlines</strong>
+            <ul class="mb-0 mt-2">
+              ${upcomingDeadlines
+                .slice(0, 5)
+                .map((d) => {
+                  let badgeClass = "bg-secondary";
+                  let label = `${d.daysRemaining} days left`;
+
+                  if (d.daysRemaining < 0) {
+                    badgeClass = "bg-dark";
+                    label = "Past due";
+                  } else if (d.daysRemaining <= 3) {
+                    badgeClass = "bg-danger";
+                  } else if (d.daysRemaining <= 7) {
+                    badgeClass = "bg-warning text-dark";
+                  }
+
+                  return `
+                    <li class="mb-2">
+                      <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                          <div><strong>${d.title}</strong></div>
+                          <small class="text-muted">${d.module} • Due ${d.deadline}</small>
+                        </div>
+                        <span class="badge ${badgeClass}">${label}</span>
+                      </div>
+                    </li>
+                  `;
+                })
+                .join("")}
+            </ul>
+          </div>
+        `;
+
+        scheduleView.appendChild(deadlineCard);
+      }
+
       // Render scheduling warnings
       if (warnings.length > 0) {
         const warningCard = document.createElement("div");
