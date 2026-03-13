@@ -6,6 +6,39 @@ const addModuleBtn = document.getElementById("addModuleBtn");
 const availabilityContainer = document.getElementById("availabilityContainer");
 const addAvailabilityBtn = document.getElementById("addAvailabilityBtn");
 
+// Participant ID function
+
+function getParticipantId() {
+  let participantId = localStorage.getItem("studyAI_participantId");
+
+  if (!participantId) {
+    participantId = `participant-${crypto.randomUUID()}`;
+    localStorage.setItem("studyAI_participantId", participantId);
+  }
+
+  return participantId;
+}
+
+// Research event logging
+async function logEvent(eventType, extraData = {}) {
+  const payload = {
+    participant_id: getParticipantId(),
+    event_type: eventType,
+    timestamp: new Date().toISOString(),
+    ...extraData,
+  };
+
+  try {
+    await fetch("http://127.0.0.1:5000/log_event", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    console.error("Log event failed:", err);
+  }
+}
+
 // Deadline Function to build deadline data to show in calendar
 
 function buildUpcomingDeadlines(modules) {
@@ -381,6 +414,17 @@ function validateForm() {
 // Initial setup
 
 loadAppState();
+logEvent("app_opened");
+
+// Display participant ID on the page
+const participantInfo = document.getElementById("participantInfo");
+if (participantInfo) {
+  participantInfo.innerHTML = `
+    <span class="badge bg-secondary">
+      Participant ID: ${getParticipantId()}
+    </span>
+  `;
+}
 
 // Handle all availability-related clicks (remove availability)
 availabilityContainer.addEventListener("click", (e) => {
@@ -941,6 +985,17 @@ generateBtn.addEventListener("click", async () => {
         });
       }
     }
+
+    // logs research data
+    logEvent("schedule_generated", {
+      ai_enabled: aiUsed,
+      ai_strictness: payload.ai_strictness,
+      total_sessions: sessions.length,
+      total_warnings: warnings.length,
+      module_count: payload.modules.length,
+      availability_count: payload.availability.length,
+    });
+
     // Restore button after successful generation
     generateBtn.disabled = false;
     generateBtn.innerHTML = `<i class="bi bi-magic me-1"></i>Generate Schedule`;

@@ -10,11 +10,26 @@ from flask_cors import CORS
 app = Flask(__name__)   
 CORS(app)
 
+#data loggging 
+@app.route("/log_event", methods=["POST"])
+def log_event():
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"error": "No log data provided"}), 400
+
+    print("LOG EVENT:", data, flush=True)
+
+    return jsonify({"status": "logged"}), 200
+
+
+#ping to test if it works
 @app.route("/ping", methods=["GET"])
 def ping():
     print("PING HIT")
     return jsonify({"status": "ok"})
 
+#Sends data to generate schedule from index
 @app.route('/generate_schedule', methods=['POST'])
 def generate():
     data = request.get_json()
