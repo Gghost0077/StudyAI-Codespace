@@ -5,6 +5,7 @@ const modulesContainer = document.getElementById("modulesContainer");
 const addModuleBtn = document.getElementById("addModuleBtn");
 const availabilityContainer = document.getElementById("availabilityContainer");
 const addAvailabilityBtn = document.getElementById("addAvailabilityBtn");
+const regenerateBtn = document.getElementById("regenerateBtn");
 
 // Participant ID function
 
@@ -294,7 +295,12 @@ function saveAppState() {
 // Loads the app state
 function loadAppState() {
   const saved = localStorage.getItem("studyAIState");
-  if (!saved) return;
+
+  if (!saved) {
+    createModuleBlock();
+    createAvailabilityBlock();
+    return;
+  }
 
   const state = JSON.parse(saved);
 
@@ -449,6 +455,12 @@ modulesContainer.addEventListener("click", (e) => {
 // Handle static button clicks
 addModuleBtn.addEventListener("click", createModuleBlock);
 addAvailabilityBtn.addEventListener("click", createAvailabilityBlock);
+
+if (regenerateBtn) {
+  regenerateBtn.addEventListener("click", () => {
+    generateBtn.click();
+  });
+}
 
 // Event Listeners for save app state and load app state
 modulesContainer.addEventListener("input", saveAppState);
@@ -777,6 +789,11 @@ generateBtn.addEventListener("click", async () => {
 
     if (!res.ok) {
       console.error("Backend error:", data);
+
+      // Restore button if backend returns an error
+      generateBtn.disabled = false;
+      generateBtn.innerHTML = `<i class="bi bi-magic me-1"></i>Generate Schedule`;
+
       alert(data.error || "Backend error");
       return;
     }
@@ -788,7 +805,7 @@ generateBtn.addEventListener("click", async () => {
     if (scheduleView) {
       scheduleView.innerHTML = ""; // clear previous results
 
-      // AI status badge
+      // AI status badg
       const aiUsed = Boolean(data.ai_used);
       const badgeWrapper = document.createElement("div");
       badgeWrapper.classList.add("mb-3");
@@ -984,17 +1001,17 @@ generateBtn.addEventListener("click", async () => {
           endHour: 22,
         });
       }
-    }
 
-    // logs research data
-    logEvent("schedule_generated", {
-      ai_enabled: aiUsed,
-      ai_strictness: payload.ai_strictness,
-      total_sessions: sessions.length,
-      total_warnings: warnings.length,
-      module_count: payload.modules.length,
-      availability_count: payload.availability.length,
-    });
+      // logs research data
+      logEvent("schedule_generated", {
+        ai_enabled: aiUsed,
+        ai_strictness: payload.ai_strictness,
+        total_sessions: sessions.length,
+        total_warnings: warnings.length,
+        module_count: payload.modules.length,
+        availability_count: payload.availability.length,
+      });
+    }
 
     // Restore button after successful generation
     generateBtn.disabled = false;
