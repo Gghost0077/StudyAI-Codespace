@@ -26,7 +26,7 @@ on the inputs provided by the user. -->
 
     <link rel="stylesheet" href="css/styles.css" />
   </head>
-  <body class="bg-light">
+  <div id="appShell" style="display: none;">
     <!-- Navbar -->
     <nav
       class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm"
@@ -38,7 +38,51 @@ on the inputs provided by the user. -->
         </a>
       </div>
     </nav>
+  </div>
 
+    <div id="consentScreen" class="container py-4">
+      <div class="card shadow-sm mx-auto" style="max-width: 700px">
+        <div class="card-body">
+          <h3 class="mb-3">Participant Information & Consent</h3>
+
+          <p class="mb-2">
+            You are invited to use this study planning application as part of a
+            dissertation project.
+          </p>
+
+          <ul>
+            <li>Your use of the app is voluntary.</li>
+            <li>No personally identifying information is required.</li>
+            <li>
+              An anonymous participant ID will be used for logging activity.
+            </li>
+            <li>
+              The app may record events such as schedule generation and feature
+              usage.
+            </li>
+            <li>You may stop using the app at any time.</li>
+          </ul>
+
+          <div class="form-check my-3">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              id="consentCheckbox"
+            />
+            <label class="form-check-label" for="consentCheckbox">
+              I have read the information above and consent to take part.
+            </label>
+          </div>
+
+          <button class="btn btn-primary" id="consentContinueBtn" disabled>
+            Continue to StudyAI
+          </button>
+        </div>
+      </div>
+    </div>
+
+    
+  <div id="appShell" style="display: none;">
     <!-- Dashboard layout -->
     <div class="container-fluid">
       <div class="row">
@@ -182,6 +226,7 @@ on the inputs provided by the user. -->
         </main>
       </div>
     </div>
+  </div>
 
     <script src="js/app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

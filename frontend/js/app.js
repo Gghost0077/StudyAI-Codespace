@@ -7,6 +7,30 @@ const availabilityContainer = document.getElementById("availabilityContainer");
 const addAvailabilityBtn = document.getElementById("addAvailabilityBtn");
 const regenerateBtn = document.getElementById("regenerateBtn");
 
+const consentScreen = document.getElementById("consentScreen");
+const appShell = document.getElementById("appShell");
+const consentCheckbox = document.getElementById("consentCheckbox");
+const consentContinueBtn = document.getElementById("consentContinueBtn");
+
+//Consent  form Functions
+function hasConsented() {
+  return localStorage.getItem("studyAI_consentGiven") === "true";
+}
+
+function setConsentGiven() {
+  localStorage.setItem("studyAI_consentGiven", "true");
+}
+
+function showAppAfterConsent() {
+  if (consentScreen) consentScreen.style.display = "none";
+  if (appShell) appShell.style.display = "block";
+}
+
+function showConsentScreen() {
+  if (consentScreen) consentScreen.style.display = "block";
+  if (appShell) appShell.style.display = "none";
+}
+
 // Participant ID function
 
 function getParticipantId() {
@@ -419,8 +443,13 @@ function validateForm() {
 
 // Initial setup
 
-loadAppState();
-logEvent("app_opened");
+if (hasConsented()) {
+  showAppAfterConsent();
+  loadAppState();
+  logEvent("app_opened");
+} else {
+  showConsentScreen();
+}
 
 // Display participant ID on the page
 const participantInfo = document.getElementById("participantInfo");
@@ -430,6 +459,22 @@ if (participantInfo) {
       Participant ID: ${getParticipantId()}
     </span>
   `;
+}
+
+//Consent button listener
+
+if (consentCheckbox && consentContinueBtn) {
+  consentCheckbox.addEventListener("change", () => {
+    consentContinueBtn.disabled = !consentCheckbox.checked;
+  });
+
+  consentContinueBtn.addEventListener("click", () => {
+    setConsentGiven();
+    showAppAfterConsent();
+    loadAppState();
+    logEvent("consent_given");
+    logEvent("app_opened");
+  });
 }
 
 // Handle all availability-related clicks (remove availability)
