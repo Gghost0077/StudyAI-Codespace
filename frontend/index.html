@@ -48,51 +48,80 @@ on the inputs provided by the user. -->
             <div class="card-body">
               <h5 class="card-title">Study Inputs</h5>
               <hr />
-          <!-- Module Inputs (Cards) -->
-          <div class="card shadow-sm mb-4">
-              <div class="card-body">
-                    <h5 class="card-title d-flex justify-content-between align-items-center">
-                        Study Modules
-                    <button class="btn btn-sm btn-outline-primary" id="addModuleBtn">
-                        <i class="bi bi-plus-lg"></i>
-                </h5>
-                <hr />
-                    <!-- JS will insert module inputs here -->
-                <div id="modulesContainer"></div>
-            </div>
-          </div>
 
-          <div class="card shadow-sm mb-4"> 
-            <div class="card-body"> 
-              <h5 class="card-title d-flex justify-content-between align-items-center"> 
-                Availability (Study Time) 
-                <button class="btn btn-sm btn-outline-primary" id="addAvailabilityBtn"> 
-                  <i class="bi bi-plus-lg"></i>
-                </button>
-              </h5> 
-              <hr />
-              <!-- Availability presets -->
-              <div class="d-flex flex-wrap gap-2 mb-3">
-                <button type="button" class="btn btn-sm btn-outline-secondary" id="presetWeekdayEvenings">
-                  Weekday evenings
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-secondary" id="presetWeekdayMornings">
-                  Weekday mornings
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-secondary" id="presetWeekends">
-                  Weekends
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-danger" id="presetClearAvailability">
-                  Clear
-                </button>
+              <div id="participantInfo" class="text-muted small mb-3"></div>
+
+              <!-- Study Modules -->
+              <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                  <h5
+                    class="card-title d-flex justify-content-between align-items-center"
+                  >
+                    <span>Study Modules</span>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-primary"
+                      id="addModuleBtn"
+                    >
+                      <i class="bi bi-plus-lg"></i>
+                    </button>
+                  </h5>
+                  <hr />
+                  <div id="modulesContainer"></div>
+                </div>
               </div>
-              <!-- JS will insert availability inputs here --> <div id="availabilityContainer"></div> 
-             </div> 
-            </div>
-            
-                
 
+              <!-- Availability -->
+              <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                  <h5
+                    class="card-title d-flex justify-content-between align-items-center"
+                  >
+                    <span>Availability (Study Time)</span>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-primary"
+                      id="addAvailabilityBtn"
+                    >
+                      <i class="bi bi-plus-lg"></i>
+                    </button>
+                  </h5>
+                  <hr />
 
+                  <div class="d-flex flex-wrap gap-2 mb-3">
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-secondary"
+                      id="presetWeekdayEvenings"
+                    >
+                      Weekday evenings
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-secondary"
+                      id="presetWeekdayMornings"
+                    >
+                      Weekday mornings
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-secondary"
+                      id="presetWeekends"
+                    >
+                      Weekends
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-danger"
+                      id="presetClearAvailability"
+                    >
+                      Clear
+                    </button>
+                  </div>
+
+                  <div id="availabilityContainer"></div>
+                </div>
+              </div>
 
               <!-- AI Toggle -->
               <div class="form-check form-switch mb-3">
@@ -101,23 +130,27 @@ on the inputs provided by the user. -->
                   type="checkbox"
                   id="aiEnabled"
                 />
-                <div class="mb-2">
-                  <label class="form-label small" for="aiStrictness">AI strictness</label>
-                  <select id="aiStrictness" class="form-select form-select-sm">
-                    <option value="low">Low (suggest only)</option>
-                    <option value="medium" selected>Medium (suggest + light tweaks)</option>
-                    <option value="high">High (stronger suggestions)</option>
-                  </select>
-                  <div class="form-text small text-muted">
-                    AI is optional and should stay within your constraints.
-                  </div>
-                </div>
                 <label class="form-check-label" for="aiEnabled"
                   >Enable AI suggestions</label
                 >
               </div>
 
-              <!-- Generate -->
+              <div class="mb-3">
+                <label class="form-label small" for="aiStrictness"
+                  >AI strictness</label
+                >
+                <select id="aiStrictness" class="form-select form-select-sm">
+                  <option value="low">Low (suggest only)</option>
+                  <option value="medium" selected>
+                    Medium (suggest + light tweaks)
+                  </option>
+                  <option value="high">High (stronger suggestions)</option>
+                </select>
+                <div class="form-text small text-muted">
+                  AI is optional and should stay within your constraints.
+                </div>
+              </div>
+
               <button class="btn btn-primary w-100" id="generateBtn">
                 <i class="bi bi-magic me-1"></i>Generate Schedule
               </button>

@@ -1,9 +1,15 @@
 from dotenv import load_dotenv
 load_dotenv()
 
+import os 
+import json 
+from datetime import datetime
+
 from flask import Flask, jsonify, request
 from scheduler import generate_schedule
 from flask_cors import CORS
+
+
 
 
 
@@ -18,10 +24,20 @@ def log_event():
     if not data:
         return jsonify({"error": "No log data provided"}), 400
 
-    print("LOG EVENT:", data, flush=True)
+    logs_dir = os.path.join(os.path.dirname(__file__), "logs")
+    os.makedirs(logs_dir, exist_ok=True)
+
+    log_path = os.path.join(logs_dir, "events.jsonl")
+
+    log_record = {
+        "timestamp_server": datetime.utcnow().isoformat(),
+        **data
+    }
+
+    with open(log_path, "a", encoding="utf-8") as f:
+        f.write(json.dumps(log_record) + "\n")
 
     return jsonify({"status": "logged"}), 200
-
 
 #ping to test if it works
 @app.route("/ping", methods=["GET"])
