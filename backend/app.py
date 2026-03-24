@@ -5,16 +5,78 @@ import os
 import json 
 from datetime import datetime
 
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 from flask import Flask, jsonify, request
 from scheduler import generate_schedule
 from flask_cors import CORS
 
-
-
-
-
 app = Flask(__name__)   
 CORS(app)
+
+
+#backend validation
+
+def is_valid_date(date_str):
+    try:
+        datetime.strptime(date_str, "%Y-%m-%d")
+        return True
+    except ValueError:
+        return False
+
+def validate_payload(data):
+    modules = data.get("modules")
+    availability = data.get("availability")
+    ai_strictness = data.get("ai_strictness", "medium")
+
+    if not isinstance(modules, list) or not modules:
+        return "Modules must be a non-empty list."
+
+    if not isinstance(availability, list) or not availability:
+        return "Availability must be a non-empty list."
+
+    if ai_strictness not in {"low", "medium", "high"}:
+        return "Invalid AI strictness value."
+
+    for module in modules:
+        if not module.get("name", "").strip():
+            return "Each module must have a name."
+
+        if str(module.get("importance", "")) not in {"1", "2", "3"} and module.get("importance") not in {1, 2, 3}:
+            return f"Module '{module.get('name', 'Unknown')}' has invalid importance."
+
+        tasks = module.get("tasks", [])
+        if not isinstance(tasks, list) or not tasks:
+            return f"Module '{module.get('name', 'Unknown')}' must contain at least one task."
+
+        for task in tasks:
+            if not task.get("title", "").strip():
+                return f"All tasks in module '{module.get('name', 'Unknown')}' must have a title."
+
+            if not is_valid_date(task.get("deadline", "")):
+                return f"Task '{task.get('title', 'Unknown')}' has an invalid deadline."
+
+            try:
+                hours = float(task.get("estimated_hours", 0))
+                if hours <= 0:
+                    return f"Task '{task.get('title', 'Unknown')}' must have positive estimated hours."
+            except (TypeError, ValueError):
+                return f"Task '{task.get('title', 'Unknown')}' has invalid estimated hours."
+
+    for slot in availability:
+        day = slot.get("day", "").strip()
+        start = slot.get("start", "")
+        end = slot.get("end", "")
+
+        if not day or not start or not end:
+            return "All availability slots must include day, start, and end."
+
+        if start >= end:
+            return "Availability start time must be before end time."
+
+    return None
 
 #data loggging 
 @app.route("/log_event", methods=["POST"])
@@ -49,11 +111,14 @@ def ping():
 @app.route('/generate_schedule', methods=['POST'])
 def generate():
     data = request.get_json()
-    print("Incoming payload:", data)  # Debugging statement to check the incoming data
-    
+
     if not data:
         return jsonify({'error': 'No input data provided'}), 400
-    
+
+    error = validate_payload(data)
+    if error:
+        return jsonify({"error": error}), 400
+
     modules = data.get('modules', [])
     availability = data.get('availability', [])
     ai_enabled = data.get('ai_enabled', False)
@@ -63,14 +128,11 @@ def generate():
         return jsonify({'error': 'Modules and availability are required'}), 400
     
     schedule = generate_schedule(modules, availability, ai_enabled, ai_strictness)
-
-    print("Returned keys:", schedule.keys())
-    print("Returned sessions:", len(schedule.get("sessions", [])))
-    print("Returned warnings:", schedule.get("warnings", []))
+    
+    logger.info(f"Generated schedule with {len(schedule.get('sessions', []))} sessions")
+ 
 
     return jsonify(schedule)
 
-
-
-if __name__ == '__main__':
-    app.run(debug=True, use_reloader=False)
+if __name__ == "__main__":
+    app.run(debug=False)

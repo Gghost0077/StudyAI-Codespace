@@ -1,6 +1,8 @@
 //Frontend JavaScript for Schedule Generator App
 
-// DOM elements connecting Javascript to the static HTML elements.
+// DOM elements connecting Javascript to the static HTML elements
+// .
+const API_BASE_URL = window.location.origin;
 const modulesContainer = document.getElementById("modulesContainer");
 const addModuleBtn = document.getElementById("addModuleBtn");
 const availabilityContainer = document.getElementById("availabilityContainer");
@@ -54,7 +56,7 @@ async function logEvent(eventType, extraData = {}) {
   };
 
   try {
-    await fetch("http://127.0.0.1:5000/log_event", {
+    await fetch(`${API_BASE_URL}/log_event`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -824,7 +826,7 @@ generateBtn.addEventListener("click", async () => {
   const upcomingDeadlines = buildUpcomingDeadlines(payload.modules);
 
   try {
-    const res = await fetch("http://127.0.0.1:5000/generate_schedule", {
+    const res = await fetch(`${API_BASE_URL}/generate_schedule`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
