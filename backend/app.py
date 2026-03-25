@@ -13,8 +13,15 @@ from flask import Flask, jsonify, request
 from scheduler import generate_schedule
 from flask_cors import CORS
 
-app = Flask(__name__)   
-CORS(app)
+app = Flask(__name__)
+
+# only allows requests from the allowed origins to prevent requests from anywhere else improving security
+allowed_origins = [
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+]
+
+CORS(app, resources={r"/*": {"origins": allowed_origins}})
 
 
 #backend validation
@@ -100,12 +107,6 @@ def log_event():
         f.write(json.dumps(log_record) + "\n")
 
     return jsonify({"status": "logged"}), 200
-
-#ping to test if it works
-@app.route("/ping", methods=["GET"])
-def ping():
-    print("PING HIT")
-    return jsonify({"status": "ok"})
 
 #Sends data to generate schedule from index
 @app.route('/generate_schedule', methods=['POST'])

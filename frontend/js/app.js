@@ -1,8 +1,12 @@
 //Frontend JavaScript for Schedule Generator App
 
+const API_BASE_URL =
+  window.location.hostname === "127.0.0.1" ||
+  window.location.hostname === "localhost"
+    ? "http://127.0.0.1:5000"
+    : "https://your-backend-domain.com";
+
 // DOM elements connecting Javascript to the static HTML elements
-// .
-const API_BASE_URL = window.location.origin;
 const modulesContainer = document.getElementById("modulesContainer");
 const addModuleBtn = document.getElementById("addModuleBtn");
 const availabilityContainer = document.getElementById("availabilityContainer");
@@ -833,6 +837,10 @@ generateBtn.addEventListener("click", async () => {
     });
 
     const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to generate schedule");
+    }
 
     if (!res.ok) {
       console.error("Backend error:", data);
