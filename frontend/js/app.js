@@ -18,6 +18,16 @@ const appShell = document.getElementById("appShell");
 const consentCheckbox = document.getElementById("consentCheckbox");
 const consentContinueBtn = document.getElementById("consentContinueBtn");
 
+// logging when app is opened
+function logAppOpenedOnce() {
+  if (sessionStorage.getItem("studyAI_appOpenedLogged") === "true") {
+    return;
+  }
+
+  logEvent("app_opened");
+  sessionStorage.setItem("studyAI_appOpenedLogged", "true");
+}
+
 //Consent  form Functions
 function hasConsented() {
   return localStorage.getItem("studyAI_consentGiven") === "true";
@@ -452,7 +462,7 @@ function validateForm() {
 if (hasConsented()) {
   showAppAfterConsent();
   loadAppState();
-  logEvent("app_opened");
+  logAppOpenedOnce();
 } else {
   showConsentScreen();
 }
@@ -479,7 +489,7 @@ if (consentCheckbox && consentContinueBtn) {
     showAppAfterConsent();
     loadAppState();
     logEvent("consent_given");
-    logEvent("app_opened");
+    logAppOpenedOnce();
   });
 }
 
