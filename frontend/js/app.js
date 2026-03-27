@@ -852,18 +852,6 @@ generateBtn.addEventListener("click", async () => {
       throw new Error(data.error || "Failed to generate schedule");
     }
 
-    if (!res.ok) {
-      console.error("Backend error:", data);
-
-      // Restore button if backend returns an error
-      generateBtn.disabled = false;
-      generateBtn.innerHTML = `<i class="bi bi-magic me-1"></i>Generate Schedule`;
-
-      alert(data.error || "Backend error");
-      return;
-    }
-
-    console.log("Schedule returned:", data);
     // Render schedule nicely in the UI
     const scheduleView = document.getElementById("scheduleView");
 
@@ -1088,6 +1076,6 @@ generateBtn.addEventListener("click", async () => {
     generateBtn.disabled = false;
     generateBtn.innerHTML = `<i class="bi bi-magic me-1"></i>Generate Schedule`;
 
-    alert("Could not reach backend. Is Flask running? " + err.message);
+    alert("Something went wrong while generating the schedule? " + err.message);
   }
 });
