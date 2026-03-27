@@ -872,13 +872,17 @@ generateBtn.addEventListener("click", async () => {
       scheduleView.appendChild(badgeWrapper);
 
       //////////////////////////////////////
-      // Schedule summary bar (showing small card with what the schedule generated has)
+      // Schedule summary bar (showing small card of what the schedule has generated)
       /////////////////////////////////////
       const sessions = Array.isArray(data.sessions) ? data.sessions : [];
       latestCalendarSessions = sessions;
       currentCalendarWeekStart = null;
 
       const warnings = Array.isArray(data.warnings) ? data.warnings : [];
+
+      if (warnings.length > 0 && sessions.length === 0) {
+        alert(warnings.join("\n"));
+      }
 
       const totalMinutes = sessions.reduce(
         (sum, s) => sum + (s.minutes ?? 0),
@@ -1035,9 +1039,20 @@ generateBtn.addEventListener("click", async () => {
         scheduleView.appendChild(sug);
       }
 
-      // Render sessions
+      // Render sessions warning if sessions are 0 due to insufficient study hours/deadlines
       if (sessions.length === 0) {
-        scheduleView.innerHTML += `
+        const emptyMessage =
+          warnings.length > 0
+            ? `
+        <div class="text-center text-muted py-4">
+          <div class="mb-2 fs-5">No feasible schedule could be generated</div>
+          <div class="small">
+            There is not enough available study time before one or more deadlines.
+            Please extend availability, reduce workload, or move deadlines.
+          </div>
+        </div>
+      `
+            : `
         <div class="text-center text-muted py-4">
           <div class="mb-2 fs-5">No schedule generated yet</div>
           <div class="small">
@@ -1045,7 +1060,8 @@ generateBtn.addEventListener("click", async () => {
             <strong>Generate Schedule</strong>.
           </div>
         </div>
-        `;
+      `;
+        scheduleView.innerHTML += emptyMessage;
       } else {
         const calHost = document.createElement("div");
         scheduleView.appendChild(calHost);
