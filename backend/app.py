@@ -9,19 +9,15 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 from scheduler import generate_schedule
 from flask_cors import CORS
 
 app = Flask(__name__)
 
 # only allows requests from the allowed origins to prevent requests from anywhere else improving security
-allowed_origins = [
-    "http://127.0.0.1:5500",
-    "http://localhost:5500",
-]
 
-CORS(app, resources={r"/*": {"origins": allowed_origins}})
+CORS(app)
 
 
 #backend validation
@@ -107,6 +103,11 @@ def log_event():
         f.write(json.dumps(log_record) + "\n")
 
     return jsonify({"status": "logged"}), 200
+
+#loads index page 
+@app.route("/")
+def home():
+    return render_template("index.html")
 
 #Sends data to generate schedule from index
 @app.route('/generate_schedule', methods=['POST'])
