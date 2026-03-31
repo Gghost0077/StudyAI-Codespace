@@ -94,10 +94,13 @@ Weekly  Calendar
   margin-top: 2px;
 }
 .calendar-session {
+  position: absolute;
+  left: 6px;
+  right: 6px;
   border-radius: 6px;
   padding: 6px 8px;
   font-size: 0.8rem;
-  margin: 2px;
+  overflow: hidden;
   cursor: default;
   transition:
     transform 0.1s ease,

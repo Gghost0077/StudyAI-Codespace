@@ -15,11 +15,6 @@ from flask_cors import CORS
 
 app = Flask(__name__)
 
-# only allows requests from the allowed origins to prevent requests from anywhere else improving security
-
-CORS(app)
-
-
 #backend validation
 
 def is_valid_date(date_str):
