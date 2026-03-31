@@ -782,6 +782,28 @@ function renderWeeklyCalendar(container, sessions) {
       grid.appendChild(block);
     });
 
+    // Render deadline markers
+    if (window.latestDeadlines) {
+      const dayDeadlines = window.latestDeadlines.filter(
+        (d) => d.date === dayKey,
+      );
+
+      dayDeadlines.forEach((d) => {
+        const marker = document.createElement("div");
+        marker.className = "deadline-marker";
+
+        marker.innerHTML = `
+      <div><strong>${d.title}</strong></div>
+      <small>Deadline</small>
+    `;
+
+        // place at bottom of the day (end of timeline)
+        marker.style.top = `${(22 - 6) * 60 - 40}px`; // near 22:00
+
+        grid.appendChild(marker);
+      });
+    }
+
     dayCol.appendChild(grid);
     cal.appendChild(dayCol);
   });
@@ -871,6 +893,7 @@ generateBtn.addEventListener("click", async () => {
       // Schedule summary bar (showing small card of what the schedule has generated)
       /////////////////////////////////////
       const sessions = Array.isArray(data.sessions) ? data.sessions : [];
+      window.latestDeadlines = data.deadlines || [];
       latestCalendarSessions = sessions;
       currentCalendarWeekStart = null;
 

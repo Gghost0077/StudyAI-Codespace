@@ -13,6 +13,20 @@
 Weekly  Calendar
 =================== */
 
+.deadline-marker {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 0;
+  background-color: #dc3545;
+  color: white;
+  font-size: 0.75rem;
+  padding: 4px 6px;
+  border-radius: 4px;
+  z-index: 5;
+  opacity: 0.9;
+}
+
 .card ul {
   padding-left: 1rem;
 }

@@ -137,7 +137,6 @@ def flatten_and_sort_tasks(modules):
     tasks.sort(key=lambda x: (x["deadline"], -x["importance"]))
     return tasks
 
-
 def build_weekly_availability(availability):
     weekly = {i: [] for i in range(7)}
 
@@ -188,6 +187,16 @@ def generate_schedule(modules, availability, ai_enabled=False, ai_strictness="me
     tasks, ai_suggestions, ai_explanations = apply_ai_personalisation(
         tasks, bool(ai_enabled), ai_strictness
     )
+
+    deadline_markers = []
+
+    for task in tasks:
+        deadline_markers.append({
+            "module": task["module"],
+            "title": task["title"],
+            "date": task["deadline"].isoformat(),
+            "type": "deadline"
+        })
 
     ai_tips = []
     if bool(ai_enabled):
@@ -257,6 +266,7 @@ def generate_schedule(modules, availability, ai_enabled=False, ai_strictness="me
 
     return {"ai_used": bool(ai_enabled), 
             "sessions": sessions, 
+            "deadlines": deadline_markers,
             "warnings": warnings,
             "ai_suggestions": ai_suggestions,
             "ai_explanations": ai_explanations,
