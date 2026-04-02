@@ -76,6 +76,14 @@ async function logEvent(eventType, extraData = {}) {
   }
 }
 
+// gets the local date in YYYY-MM-DD format for calendar rendering and deadline comparison so shifting to local timezone and not having issues with UTC offsets
+function formatLocalDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 // Deadline Function to build deadline data to show in calendar
 
 function buildUpcomingDeadlines(modules) {
@@ -752,7 +760,7 @@ function renderWeeklyCalendar(container, sessions) {
 
     // Place sessions in the correct position
 
-    const dayKey = dayDate.toISOString().slice(0, 10); // "YYYY-MM-DD"
+    const dayKey = formatLocalDate(dayDate);
     const daySessions = valid.filter((s) => s.date === dayKey);
 
     daySessions.forEach((s) => {
