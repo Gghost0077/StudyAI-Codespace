@@ -62,8 +62,8 @@ def apply_ai_personalisation(tasks, ai_enabled, ai_strictness):
 def generate_study_tips_placeholder(tasks, ai_enabled):
     """
     Placeholder AI tips:
-    Uses simple keyword rules on title/description to generate study advice.
-    Returns a list of tips 
+    Uses simple keyword rules on title/description to generate fuller study advice.
+    Returns a list of tips with the same structure as the OpenAI output.
     """
     if not ai_enabled:
         return []
@@ -72,26 +72,71 @@ def generate_study_tips_placeholder(tasks, ai_enabled):
     for t in tasks:
         text = f'{t.get("title","")} {t.get("description","")}'.lower()
 
-        # Very simple keyword-based tips (placeholder)
         if any(k in text for k in ["essay", "report", "write", "draft", "structure"]):
-            tip = "Break writing into chunks: outline → section drafts → edit pass → final proofread."
+            tip = "Break the writing into small sections and finish one section per session."
+            next_step = "Write a short outline for the first section."
+            progression_blocks = [
+                "Understand the task brief",
+                "Create an outline",
+                "Draft each section",
+                "Edit for clarity and structure",
+                "Proofread and finalise",
+            ]
+            session_focus = "Draft the first section using your outline."
         elif any(k in text for k in ["exam", "revision", "test", "quiz"]):
-            tip = "Use active recall + spaced repetition: practice questions, flashcards, and review over multiple days."
+            tip = "Use active recall and spaced repetition instead of rereading notes passively."
+            next_step = "Create five quick practice questions from your notes."
+            progression_blocks = [
+                "Identify key topics",
+                "Make questions or flashcards",
+                "Test yourself regularly",
+                "Review weak areas",
+                "Do timed practice",
+            ]
+            session_focus = "Test yourself on one topic without looking at notes."
         elif any(k in text for k in ["coding", "program", "bug", "debug", "implement"]):
-            tip = "Work in small increments: implement one feature, test, commit, then move to the next."
+            tip = "Work feature by feature and test each part before moving on."
+            next_step = "Implement one small part of the feature first."
+            progression_blocks = [
+                "Understand requirements",
+                "Plan the solution",
+                "Implement one part",
+                "Test and debug",
+                "Refine and document",
+            ]
+            session_focus = "Build and test one small feature component."
         elif any(k in text for k in ["research", "literature", "paper", "reading"]):
-            tip = "Skim first (abstract/intro/conclusion), then deep read; take notes as 3 bullet summaries."
+            tip = "Read strategically by skimming first and then taking short summary notes."
+            next_step = "Skim one source and note three key points."
+            progression_blocks = [
+                "Skim the material",
+                "Identify useful sections",
+                "Take concise notes",
+                "Compare sources",
+                "Summarise findings",
+            ]
+            session_focus = "Read one source and capture its most useful ideas."
         else:
-            tip = "Define a clear mini-goal for each session (e.g., 1 subsection, 10 flashcards, 1 practice set)."
+            tip = "Set a clear mini-goal so each session ends with visible progress."
+            next_step = "Define one small outcome for this study session."
+            progression_blocks = [
+                "Understand the task",
+                "Choose one small target",
+                "Complete focused work",
+                "Review what was done",
+            ]
+            session_focus = "Finish one small, clearly defined part of the task."
 
         tips.append({
             "task_title": t["title"],
             "module": t["module"],
-            "tip": tip
+            "tip": tip,
+            "next_step": next_step,
+            "progression_blocks": progression_blocks,
+            "session_focus": session_focus,
         })
 
     return tips
-
 
 # Math tools allowing us to convert between time formats and do calculations for the scheduler logic
 def time_to_minutes(t: str) -> int:
@@ -203,6 +248,8 @@ def generate_schedule(modules, availability, ai_enabled=False, ai_strictness="me
         try:
             ai_tips = get_study_tips_openai(tasks, strictness=ai_strictness)
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             print("AI tip generation failed:", e, flush=True)
             ai_tips = generate_study_tips_placeholder(tasks, True)
     else:

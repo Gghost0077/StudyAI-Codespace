@@ -1008,19 +1008,59 @@ generateBtn.addEventListener("click", async () => {
       if (Array.isArray(data.ai_tips) && data.ai_tips.length > 0) {
         const tipsCard = document.createElement("div");
         tipsCard.className = "card mb-3 shadow-sm";
+
         tipsCard.innerHTML = `
-            <div class="card-body">
-            <strong>Study tips</strong>
-            <ul class="mb-0">
-            ${data.ai_tips
-              .map(
-                (t) =>
-                  `<li><strong>${t.task_title ?? "Task"}</strong> (${t.module ?? "Module"}): ${t.tip}</li>`,
-              )
-              .join("")}
-              </ul>
-            </div>
-          `;
+    <div class="card-body">
+      <strong>AI study guidance</strong>
+      <div class="mt-3">
+        ${data.ai_tips
+          .map(
+            (t) => `
+                      <div class="border rounded p-3 mb-3 bg-light">
+          <div class="mb-2">
+            <strong>${t.task_title ?? "Task"}</strong>
+            <span class="text-muted">(${t.module ?? "Module"})</span>
+          </div>
+
+          <div class="mb-2">
+            <strong>Tip:</strong> ${t.tip ?? "No tip available."}
+          </div>
+
+          <div class="mb-2">
+            <strong>Next step:</strong>
+            <span class="badge bg-primary ms-1">${t.next_step ?? "Start the first small part."}</span>
+          </div>
+
+          <div class="mb-2">
+            <strong>Session focus:</strong>
+            <span>${t.session_focus ?? "Complete one focused piece of work."}</span>
+          </div>
+
+          ${
+            Array.isArray(t.progression_blocks) &&
+            t.progression_blocks.length > 0
+              ? `
+                <div>
+                  <strong>Progression blocks:</strong>
+                  <ul class="mb-0 mt-1">
+                    ${t.progression_blocks
+                      .map(
+                        (p, i) =>
+                          `<li><strong>Step ${i + 1}:</strong> ${p}</li>`,
+                      )
+                      .join("")}
+                  </ul>
+                </div>
+              `
+              : ""
+          }
+        </div>
+            `,
+          )
+          .join("")}
+      </div>
+    </div>
+  `;
 
         scheduleView.appendChild(tipsCard);
       }
