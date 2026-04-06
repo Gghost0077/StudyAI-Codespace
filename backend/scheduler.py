@@ -164,6 +164,7 @@ def flatten_and_sort_tasks(modules):
     for m in modules:
         module_name =  (m.get("name") or "").strip()
         importance = int(m.get("importance", 2))
+        module_brief_text = (m.get("brief_text") or "").strip()
 
         for t in m.get("tasks", []):
             deadline_str  = t.get("deadline")
@@ -175,6 +176,7 @@ def flatten_and_sort_tasks(modules):
                     "importance": importance,
                     "title": (t.get("title") or "").strip(),
                     "description": (t.get("description") or "").strip(),
+                    "module_brief_text": module_brief_text,
                     "task_type": (t.get("task_type") or "").strip(),
                     "current_progress": (t.get("current_progress") or "").strip(),
                     "biggest_difficulty": (t.get("biggest_difficulty") or "").strip(),

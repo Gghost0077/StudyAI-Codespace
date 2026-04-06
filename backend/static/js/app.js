@@ -144,6 +144,18 @@ function createModuleBlock() {
       </select>
     </div>
 
+    <div class="mb-3">
+      <label class="form-label">Assessment Brief (Optional)</label>
+      <div class="briefDropZone border rounded p-3 text-center bg-light" style="cursor:pointer;">
+        Drag & drop PDF, TXT, or DOCX here or click to upload
+      </div>
+      <input type="file" class="briefFileInput d-none" accept=".pdf,.txt,.docx" />
+      <div class="briefFileInfo small text-muted mt-2">No brief uploaded</div>
+      <button type="button" class="btn btn-sm btn-outline-secondary mt-2 removeBriefBtn d-none">
+        Remove Brief
+      </button>
+    </div>
+
     <hr />
 
     <div class="d-flex justify-content-between align-items-center mb-2">
@@ -155,7 +167,6 @@ function createModuleBlock() {
 
     <div class="tasksContainer"></div>
   </div>
-
   `;
 
   modulesContainer.appendChild(moduleDiv);
@@ -296,6 +307,45 @@ function createAvailabilityBlock() {
   availabilityContainer.appendChild(slot);
 }
 
+/////////////////////
+// upload function helper
+/////////////////////
+async function uploadBriefFile(file, moduleCard) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const info = moduleCard.querySelector(".briefFileInfo");
+  const removeBtn = moduleCard.querySelector(".removeBriefBtn");
+
+  info.textContent = "Uploading and extracting text...";
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/upload_brief`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to upload brief");
+    }
+
+    moduleCard.dataset.briefText = data.brief_text;
+    moduleCard.dataset.briefFilename = data.filename;
+
+    info.textContent = `Uploaded: ${data.filename}`;
+    removeBtn.classList.remove("d-none");
+
+    saveAppState();
+  } catch (err) {
+    console.error("Brief upload failed:", err);
+    info.textContent = "Upload failed";
+    console.error("Upload error details:", err);
+    alert("Brief upload failed: " + err.message);
+  }
+}
+
 ///////////////////////////////
 // Availability preset helpers
 ///////////////////////////////
@@ -333,6 +383,8 @@ function getModules() {
         importance: Number(
           moduleBlock.querySelector(".module-importance").value,
         ),
+        brief_text: moduleBlock.dataset.briefText || "",
+        brief_filename: moduleBlock.dataset.briefFilename || "",
         tasks: [],
       };
 
@@ -420,6 +472,20 @@ function loadAppState() {
       moduleBlock.querySelector(".module-importance").value = String(
         module.importance ?? 2,
       );
+
+      moduleBlock.dataset.briefText = module.brief_text ?? "";
+      moduleBlock.dataset.briefFilename = module.brief_filename ?? "";
+
+      const briefInfo = moduleBlock.querySelector(".briefFileInfo");
+      const removeBriefBtn = moduleBlock.querySelector(".removeBriefBtn");
+
+      if (module.brief_filename) {
+        briefInfo.textContent = `Uploaded: ${module.brief_filename}`;
+        removeBriefBtn.classList.remove("d-none");
+      } else {
+        briefInfo.textContent = "No brief uploaded";
+        removeBriefBtn.classList.add("d-none");
+      }
 
       const tasksContainer = moduleBlock.querySelector(".tasksContainer");
       tasksContainer.innerHTML = "";
@@ -574,8 +640,65 @@ modulesContainer.addEventListener("click", (e) => {
     createTaskBlock(tasksContainer);
   } else if (e.target.closest(".removeModuleBtn")) {
     e.target.closest(".card").remove();
+    saveAppState();
   } else if (e.target.closest(".removeTaskBtn")) {
     e.target.closest(".task-block").remove();
+    saveAppState();
+  } else if (e.target.closest(".briefDropZone")) {
+    const moduleCard = e.target.closest(".card");
+    moduleCard.querySelector(".briefFileInput").click();
+  } else if (e.target.closest(".removeBriefBtn")) {
+    const moduleCard = e.target.closest(".card");
+    moduleCard.dataset.briefText = "";
+    moduleCard.dataset.briefFilename = "";
+    moduleCard.querySelector(".briefFileInfo").textContent =
+      "No brief uploaded";
+    moduleCard.querySelector(".removeBriefBtn").classList.add("d-none");
+    saveAppState();
+  }
+});
+
+// file input change listener for brief uploads
+modulesContainer.addEventListener("change", async (e) => {
+  if (e.target.matches(".briefFileInput")) {
+    const fileInput = e.target;
+    const moduleCard = fileInput.closest(".card");
+    const file = fileInput.files?.[0];
+
+    if (file) {
+      await uploadBriefFile(file, moduleCard);
+    }
+  }
+});
+
+// drag and drop listeners for brief uploads
+modulesContainer.addEventListener("dragover", (e) => {
+  const dropZone = e.target.closest(".briefDropZone");
+  if (dropZone) {
+    e.preventDefault();
+    dropZone.classList.add("border-primary");
+  }
+});
+
+modulesContainer.addEventListener("dragleave", (e) => {
+  const dropZone = e.target.closest(".briefDropZone");
+  if (dropZone) {
+    dropZone.classList.remove("border-primary");
+  }
+});
+
+modulesContainer.addEventListener("drop", async (e) => {
+  const dropZone = e.target.closest(".briefDropZone");
+  if (!dropZone) return;
+
+  e.preventDefault();
+  dropZone.classList.remove("border-primary");
+
+  const moduleCard = dropZone.closest(".card");
+  const file = e.dataTransfer.files?.[0];
+
+  if (file) {
+    await uploadBriefFile(file, moduleCard);
   }
 });
 

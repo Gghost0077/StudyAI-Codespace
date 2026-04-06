@@ -15,6 +15,7 @@ def get_study_tips_openai(tasks, strictness="medium"):
             "task_title": t.get("title", ""),
             "module": t.get("module", ""),
             "description": t.get("description", ""),
+            "module_brief_text": t.get("module_brief_text", ""),
             "task_type": t.get("task_type", ""),
             "current_progress": t.get("current_progress", ""),
             "biggest_difficulty": t.get("biggest_difficulty", ""),
@@ -70,6 +71,8 @@ def get_study_tips_openai(tasks, strictness="medium"):
             "For EACH task, return practical and specific guidance based on the task title, module, description, "
             "task type, current progress, biggest difficulty, goal, deadline, and minutes needed. "
             "Use the additional context fields when they are available. "
+            "If module brief text is provided, use it to understand the assessment requirements, deliverables, "
+            "and likely work stages before giving advice. "
             "Make the advice feel personalised to the student's current situation. "
             "Return all fields with meaningful content. Never leave any field empty. "
             "Do not use placeholders like 'No next step available'. "

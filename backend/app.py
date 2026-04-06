@@ -10,13 +10,48 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 from flask import Flask, jsonify, request, render_template
+from werkzeug.utils import secure_filename
+from PyPDF2 import PdfReader
+import tempfile
+from docx import Document
 from scheduler import generate_schedule
 from flask_cors import CORS
 
 app = Flask(__name__)
 
-#backend validation
 
+#drag and drop file upload
+
+ALLOWED_EXTENSIONS = {"txt", "pdf", "docx"}
+MAX_BRIEF_CHARS = 12000
+
+def allowed_file(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def extract_text_from_docx(path):
+    doc = Document(path)
+    paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
+    return "\n".join(paragraphs)
+
+def extract_text_from_txt(path):
+    with open(path, "r", encoding="utf-8", errors="ignore") as f:
+        return f.read()
+
+def extract_text_from_pdf(path):
+    reader = PdfReader(path)
+    pages = []
+    for page in reader.pages:
+        text = page.extract_text() or ""
+        pages.append(text)
+    return "\n".join(pages)
+
+def trim_brief_text(text):
+    text = (text or "").strip()
+    if len(text) > MAX_BRIEF_CHARS:
+        return text[:MAX_BRIEF_CHARS]
+    return text
+
+#backend validation
 def is_valid_date(date_str):
     try:
         datetime.strptime(date_str, "%Y-%m-%d")
@@ -98,6 +133,59 @@ def log_event():
         f.write(json.dumps(log_record) + "\n")
 
     return jsonify({"status": "logged"}), 200
+
+@app.route("/upload_brief", methods=["POST"])
+def upload_brief():
+    if "file" not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    file = request.files["file"]
+
+    if not file or file.filename == "":
+        return jsonify({"error": "No file selected"}), 400
+
+    if not allowed_file(file.filename):
+        return jsonify({"error": "Only PDF, TXT, and DOCX files are supported"}), 400
+
+    filename = secure_filename(file.filename)
+    suffix = "." + filename.rsplit(".", 1)[1].lower()
+
+    temp_path = None
+
+    try:
+        fd, temp_path = tempfile.mkstemp(suffix=suffix)
+        os.close(fd)
+
+        file.save(temp_path)
+
+        if suffix == ".txt":
+            extracted = extract_text_from_txt(temp_path)
+        elif suffix == ".pdf":
+            extracted = extract_text_from_pdf(temp_path)
+        elif suffix == ".docx":
+            extracted = extract_text_from_docx(temp_path)
+        else:
+            return jsonify({"error": "Unsupported file type"}), 400
+
+        extracted = trim_brief_text(extracted)
+
+        if not extracted.strip():
+            return jsonify({"error": "Could not extract readable text from the file"}), 400
+
+        return jsonify({
+            "filename": filename,
+            "brief_text": extracted
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Failed to process file: {str(e)}"}), 500
+
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except OSError:
+                pass
 
 #loads index page 
 @app.route("/")
