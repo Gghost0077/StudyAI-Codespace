@@ -171,13 +171,17 @@ def flatten_and_sort_tasks(modules):
                 continue  # Skip tasks without a deadline
 
             tasks.append({
-                "module": module_name,
-                "importance": importance,
-                "title": (t.get("title") or "").strip(),
-                "description": (t.get("description") or "").strip(),
-                "deadline": parse_deadline(deadline_str),
-                "minutes_needed": int(float(t.get("estimated_hours", 0)) * 60),
-            })
+                    "module": module_name,
+                    "importance": importance,
+                    "title": (t.get("title") or "").strip(),
+                    "description": (t.get("description") or "").strip(),
+                    "task_type": (t.get("task_type") or "").strip(),
+                    "current_progress": (t.get("current_progress") or "").strip(),
+                    "biggest_difficulty": (t.get("biggest_difficulty") or "").strip(),
+                    "goal": (t.get("goal") or "").strip(),
+                    "deadline": parse_deadline(deadline_str),
+                    "minutes_needed": int(float(t.get("estimated_hours", 0)) * 60),
+                })
     # Sort tasks by deadline, then by importance (descending)
     tasks.sort(key=lambda x: (x["deadline"], -x["importance"]))
     return tasks

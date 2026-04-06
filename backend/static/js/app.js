@@ -186,6 +186,57 @@ function createTaskBlock(container) {
     </div>
 
     <div class="row g-2 mb-2">
+      <div class="col-md-6">
+        <label class="form-label">Task Type</label>
+        <select class="form-select task-type">
+          <option value="">Select task type</option>
+          <option value="Essay">Essay</option>
+          <option value="Exam">Exam</option>
+          <option value="Coding">Coding</option>
+          <option value="Reading">Reading</option>
+          <option value="Research">Research</option>
+          <option value="Presentation">Presentation</option>
+          <option value="Coursework">Coursework</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Current Progress</label>
+        <select class="form-select task-progress">
+          <option value="">Select progress</option>
+          <option value="Not started">Not started</option>
+          <option value="Started">Started</option>
+          <option value="Half done">Half done</option>
+          <option value="Nearly finished">Nearly finished</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row g-2 mb-2">
+      <div class="col-md-6">
+        <label class="form-label">Biggest Difficulty</label>
+        <select class="form-select task-difficulty">
+          <option value="">Select difficulty</option>
+          <option value="Understanding the topic">Understanding the topic</option>
+          <option value="Getting started">Getting started</option>
+          <option value="Structuring the work">Structuring the work</option>
+          <option value="Remembering content">Remembering content</option>
+          <option value="Staying focused">Staying focused</option>
+          <option value="Debugging">Debugging</option>
+          <option value="Writing clearly">Writing clearly</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Goal for This Task</label>
+        <input type="text" class="form-control task-goal"
+          placeholder="e.g., Finish first draft" />
+      </div>
+    </div>
+
+    <div class="row g-2 mb-2">
       <div class="col-6">
         <label class="form-label">Deadline</label>
         <input type="date" class="form-control task-deadline" />
@@ -291,6 +342,11 @@ function getModules() {
           module.tasks.push({
             title: taskBlock.querySelector(".task-title").value.trim(),
             description: taskBlock.querySelector(".task-desc").value.trim(),
+            task_type: taskBlock.querySelector(".task-type").value,
+            current_progress: taskBlock.querySelector(".task-progress").value,
+            biggest_difficulty:
+              taskBlock.querySelector(".task-difficulty").value,
+            goal: taskBlock.querySelector(".task-goal").value.trim(),
             deadline: taskBlock.querySelector(".task-deadline").value,
             estimated_hours: Number(
               taskBlock.querySelector(".task-hours").value,
@@ -377,6 +433,12 @@ function loadAppState() {
 
           taskBlock.querySelector(".task-title").value = task.title ?? "";
           taskBlock.querySelector(".task-desc").value = task.description ?? "";
+          taskBlock.querySelector(".task-type").value = task.task_type ?? "";
+          taskBlock.querySelector(".task-progress").value =
+            task.current_progress ?? "";
+          taskBlock.querySelector(".task-difficulty").value =
+            task.biggest_difficulty ?? "";
+          taskBlock.querySelector(".task-goal").value = task.goal ?? "";
           taskBlock.querySelector(".task-deadline").value = task.deadline ?? "";
           taskBlock.querySelector(".task-hours").value =
             task.estimated_hours ?? "";

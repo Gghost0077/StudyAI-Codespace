@@ -15,6 +15,10 @@ def get_study_tips_openai(tasks, strictness="medium"):
             "task_title": t.get("title", ""),
             "module": t.get("module", ""),
             "description": t.get("description", ""),
+            "task_type": t.get("task_type", ""),
+            "current_progress": t.get("current_progress", ""),
+            "biggest_difficulty": t.get("biggest_difficulty", ""),
+            "goal": t.get("goal", ""),
             "deadline": str(t.get("deadline", "")),
             "minutes_needed": t.get("minutes_needed", 0),
         }
@@ -63,20 +67,24 @@ def get_study_tips_openai(tasks, strictness="medium"):
                 "content": (
 
             "You are an academic study coach helping students follow a generated study schedule. "
-            "For EACH task, return practical and specific guidance based on the task title, module, "
-            "description, deadline, and minutes needed. "
+            "For EACH task, return practical and specific guidance based on the task title, module, description, "
+            "task type, current progress, biggest difficulty, goal, deadline, and minutes needed. "
+            "Use the additional context fields when they are available. "
+            "Make the advice feel personalised to the student's current situation. "
             "Return all fields with meaningful content. Never leave any field empty. "
             "Do not use placeholders like 'No next step available'. "
             "Rules: "
-            "1. tip: one short practical study tip tailored to the task. "
+            "1. tip: one short practical study tip tailored to the actual task and difficulty. "
             "2. next_step: one concrete action the student can start immediately, starting with a verb. "
             "3. progression_blocks: 3 to 5 short ordered stages showing how to complete the task over time. "
             "4. session_focus: one precise focus for the very next study session only. "
-            "5. For small tasks, keep advice simple and direct. "
-            "6. For large tasks, break the work into clearer stages. "
-            "7. Keep each field concise, specific, and actionable. "
+            "5. If current progress is 'Not started', make the next step small and easy to begin. "
+            "6. If current progress is 'Half done' or 'Nearly finished', focus on completion and refinement. "
+            "7. If biggest difficulty is given, directly address that difficulty in the advice. "
+            "8. If a goal is provided, align the tip and next step with that goal. "
+            "9. Keep each field concise, specific, and actionable. "
             "Return only valid JSON matching the schema."
-),
+            ),
             },
             {
                 "role": "user",
