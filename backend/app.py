@@ -9,7 +9,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, jsonify, request, render_template, send_file
 from werkzeug.utils import secure_filename
 from PyPDF2 import PdfReader
 import tempfile
@@ -254,6 +254,16 @@ def generate():
  
 
     return jsonify(schedule)
+
+
+@app.route("/download_logs", methods=["GET"])
+def download_logs():
+    log_path = os.path.join(os.path.dirname(__file__), "logs", "events.jsonl")
+
+    if not os.path.exists(log_path):
+        return jsonify({"error": "No logs found"}), 404
+
+    return send_file(log_path, as_attachment=True)
 
 if __name__ == "__main__":
     app.run(debug=False)
