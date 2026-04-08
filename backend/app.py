@@ -255,9 +255,14 @@ def generate():
 
     return jsonify(schedule)
 
-
 @app.route("/download_logs", methods=["GET"])
 def download_logs():
+    key = request.args.get("key")
+    secret_key = os.getenv("LOG_DOWNLOAD_KEY")
+
+    if not secret_key or key != secret_key:
+        return jsonify({"error": "Unauthorized"}), 403
+
     log_path = os.path.join(os.path.dirname(__file__), "logs", "events.jsonl")
 
     if not os.path.exists(log_path):
