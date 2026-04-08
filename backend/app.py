@@ -119,20 +119,56 @@ def log_event():
     if not data:
         return jsonify({"error": "No log data provided"}), 400
 
+    allowed_event_types = {
+        "app_opened",
+        "consent_given",
+        "schedule_generated",
+        "schedule_generation_failed",
+        "brief_uploaded",
+        "brief_upload_failed",
+        "ai_toggled"
+    }
+
+    event_type = data.get("event_type")
+    if event_type not in allowed_event_types:
+        return jsonify({"error": "Invalid event type"}), 400
+
+    participant_id = str(data.get("participant_id", "")).strip()
+    if not participant_id:
+        return jsonify({"error": "Missing participant_id"}), 400
+
+    log_record = {
+        "timestamp_server": datetime.utcnow().isoformat(),
+        "participant_id": participant_id,
+        "event_type": event_type,
+        "timestamp_client": data.get("timestamp"),
+    }
+
+    if isinstance(data.get("ai_enabled"), bool):
+        log_record["ai_enabled"] = data["ai_enabled"]
+
+    if data.get("ai_strictness") in {"low", "medium", "high"}:
+        log_record["ai_strictness"] = data["ai_strictness"]
+
+    for key in ["module_count", "task_count", "availability_count"]:
+        value = data.get(key)
+        if isinstance(value, int):
+            log_record[key] = value
+
+    if isinstance(data.get("status"), str):
+        log_record["status"] = data["status"]
+
     logs_dir = os.path.join(os.path.dirname(__file__), "logs")
     os.makedirs(logs_dir, exist_ok=True)
 
     log_path = os.path.join(logs_dir, "events.jsonl")
 
-    log_record = {
-        "timestamp_server": datetime.utcnow().isoformat(),
-        **data
-    }
-
     with open(log_path, "a", encoding="utf-8") as f:
         f.write(json.dumps(log_record) + "\n")
 
     return jsonify({"status": "logged"}), 200
+
+#drag and drop file upload for brief, with text extraction and validation
 
 @app.route("/upload_brief", methods=["POST"])
 def upload_brief():

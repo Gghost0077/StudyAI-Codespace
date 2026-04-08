@@ -58,12 +58,36 @@ function getParticipantId() {
 
 // Research event logging
 async function logEvent(eventType, extraData = {}) {
+  const safeExtra = {
+    ai_enabled:
+      typeof extraData.ai_enabled === "boolean"
+        ? extraData.ai_enabled
+        : undefined,
+    ai_strictness: ["low", "medium", "high"].includes(extraData.ai_strictness)
+      ? extraData.ai_strictness
+      : undefined,
+    module_count: Number.isInteger(extraData.module_count)
+      ? extraData.module_count
+      : undefined,
+    task_count: Number.isInteger(extraData.task_count)
+      ? extraData.task_count
+      : undefined,
+    availability_count: Number.isInteger(extraData.availability_count)
+      ? extraData.availability_count
+      : undefined,
+    status: typeof extraData.status === "string" ? extraData.status : undefined,
+  };
+
   const payload = {
     participant_id: getParticipantId(),
     event_type: eventType,
     timestamp: new Date().toISOString(),
-    ...extraData,
+    ...safeExtra,
   };
+
+  Object.keys(payload).forEach((key) => {
+    if (payload[key] === undefined) delete payload[key];
+  });
 
   try {
     await fetch(`${API_BASE_URL}/log_event`, {
@@ -1048,6 +1072,13 @@ generateBtn.addEventListener("click", async () => {
     ai_strictness: document.getElementById("aiStrictness").value, // low|medium|high
   };
 
+  const moduleCount = payload.modules.length;
+  const taskCount = payload.modules.reduce(
+    (sum, module) => sum + (module.tasks ? module.tasks.length : 0),
+    0,
+  );
+  const availabilityCount = payload.availability.length;
+
   const upcomingDeadlines = buildUpcomingDeadlines(payload.modules);
 
   try {
@@ -1327,10 +1358,10 @@ generateBtn.addEventListener("click", async () => {
       logEvent("schedule_generated", {
         ai_enabled: aiUsed,
         ai_strictness: payload.ai_strictness,
-        total_sessions: sessions.length,
-        total_warnings: warnings.length,
-        module_count: payload.modules.length,
-        availability_count: payload.availability.length,
+        module_count: moduleCount,
+        task_count: taskCount,
+        availability_count: availabilityCount,
+        status: "success",
       });
     }
 
@@ -1339,6 +1370,15 @@ generateBtn.addEventListener("click", async () => {
     generateBtn.innerHTML = `<i class="bi bi-magic me-1"></i>Generate Schedule`;
   } catch (err) {
     console.error("Fetch Failed", err);
+
+    logEvent("schedule_generation_failed", {
+      ai_enabled: payload.ai_enabled,
+      ai_strictness: payload.ai_strictness,
+      module_count: moduleCount,
+      task_count: taskCount,
+      availability_count: availabilityCount,
+      status: "error",
+    });
 
     // Restore button if request fails
     generateBtn.disabled = false;
