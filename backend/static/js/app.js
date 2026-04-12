@@ -1224,6 +1224,13 @@ generateBtn.addEventListener("click", async () => {
           Your schedule has been generated using the standard rule-based method instead.
         `;
         scheduleView.appendChild(limitMsg);
+      } else if (typeof data.ai_uses_remaining === "number") {
+        const counterMsg = document.createElement("div");
+        counterMsg.className = "alert alert-info mb-3";
+        counterMsg.innerHTML = `
+          <strong>AI uses remaining: ${data.ai_uses_remaining}</strong> of 20
+        `;
+        scheduleView.appendChild(counterMsg);
       }
 
       //////////////////////////////////////

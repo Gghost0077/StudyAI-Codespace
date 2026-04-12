@@ -387,6 +387,8 @@ def generate():
 # hanedles the validated data and calls the generated schedule function in scheduler.py, passing in the modules, availability, and AI configuration.
     schedule = generate_schedule(modules, availability, ai_enabled, ai_strictness)
     schedule["ai_limit_reached"] = ai_limit_reached
+    schedule["ai_uses_remaining"] = max(0, AI_USAGE_LIMIT - get_ai_usage_count(participant_id)) if participant_id else AI_USAGE_LIMIT
+ 
 
 # writes  a simple backend log message showing how many sessions were generated in the schedule. 
     logger.info(f"Generated schedule with {len(schedule.get('sessions', []))} sessions")
