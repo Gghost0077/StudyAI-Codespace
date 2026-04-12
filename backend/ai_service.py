@@ -1,15 +1,37 @@
-import json
-import os 
-from openai import OpenAI
-
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+# This files contains the AI related functions, such as generating study tips from task details using OpenAI's API.
+# it takes the cleaned task list from the scheduler and sends it to the OpenAI API with a system prompt that instructs the model to act as an academic study coach.
 
 
-#Generates study tips from task titles/descriptions of tasks using open AI
+
+# ========================
+# Imports and Client Setup
+# ========================
+
+
+import json # used to parse the JSON response from the OpenAI API, ensuring that the data can be easily manipulated and returned in a structured format.
+import os  # used to read environment variables, specifically to access the OpenAI API key securely without hardcoding it in the codebase.
+from openai import OpenAI # imports the OpenAI client library, which provides the necessary functions to interact with the OpenAI API for generating responses based on the provided prompts and input data.
+
+
+# creates the openAI client using the API key from the environment variable,
+#  allowing the application to securely authenticate with the OpenAI API and make requests to generate study tips based on the task details.
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY")) 
+
+
+
+
+# =======================
+# Generate Study Tips Function
+# =======================
 def get_study_tips_openai(tasks, strictness="medium"):
+
+    # checks whether the API key is set in the environment variables before making any API calls.
+    #  If the key is missing, it raises a RuntimeError to alert the developer or user
+    #  that the necessary configuration is not in place for the function to operate correctly.
     if not os.environ.get("OPENAI_API_KEY"):
         raise RuntimeError("OPENAI_API_KEY not set")
 
+# builds a simplified AI-facing version of each task, extracting only the relevant fields needed for the AI to generate study tips.
     task_payload = [
         {
             "task_title": t.get("title", ""),
@@ -26,6 +48,9 @@ def get_study_tips_openai(tasks, strictness="medium"):
         for t in tasks
     ]
 
+# defines the expected JSON schema for the AI response, specifying the structure and types of the data that the AI should return.
+# making sure the AI response adheres to this schema allows for consistent parsing and handling of the generated study tips,
+#  ensuring that all necessary fields are present and correctly formatted for use in the frontend.
     schema = {
     "type": "object",
     "properties": {
@@ -60,8 +85,12 @@ def get_study_tips_openai(tasks, strictness="medium"):
     "additionalProperties": False,
 }
 
+# calls the OpenAI API to generate study tips based on the provided tasks and strictness level,
+#  using a detailed system prompt to guide the AI's response.
     response = client.responses.create(
         model="gpt-5.4",
+    
+    # starts the prompt input list and begins the system message that instructs the AI on how to generate the study tips.
         input=[
             {
                 "role": "system",
@@ -90,6 +119,8 @@ def get_study_tips_openai(tasks, strictness="medium"):
             ),
             },
             {
+            #sends the user message containing the strictness level and the task payload, 
+            # which includes all the relevant details of the tasks that the AI will use to generate the study tips.
                 "role": "user",
                 "content": (
                     f"Strictness: {strictness}\n"
@@ -97,6 +128,8 @@ def get_study_tips_openai(tasks, strictness="medium"):
                 ),
             },
         ],
+        # tells the OpenAI API to format the response according to the defined JSON schema, 
+        # ensuring that the output can be reliably parsed and used by the frontend.
         text={
             "format": {
                 "type": "json_schema",
@@ -107,33 +140,53 @@ def get_study_tips_openai(tasks, strictness="medium"):
         },
     )
 
-# makes sure all fields are present and non-empty, with fallbacks if necessary
+
+
+#=======================
+# Parse and Clean AI Response
+#=======================
+
+# extrats the returned JSON text from the response object 
+#parses the JSON text into a Python dictionary, 
+# and then iterates through each tip to clean and validate the content,
+#  ensuring that all fields are populated with meaningful information and applying fallbacks where necessary.
     raw_text = response.output[0].content[0].text
     data = json.loads(raw_text)
     tips = data["tips"]
 
+# helper to ensure that each field in the AI response is a non-empty string, providing a fallback value if the field is missing or empty.
     def safe_text(value, fallback):
         if isinstance(value, str) and value.strip():
             return value.strip()
         return fallback
 
+# starts the final output cleaning loop 
     cleaned = []
     for t in tips:
+    # ensures that the task title and module fields are populated with the actual task title and module from the AI response,
+    #  or default values if they are missing.
         task_title = safe_text(t.get("task_title"), "Task")
         module = safe_text(t.get("module"), "Module")
+        # use the AI tip if valid 
+        # otherwise, provide a generic fallback tip that encourages breaking the task into smaller chunks and focusing on one piece at a time.
         tip = safe_text(
             t.get("tip"),
             "Break this task into smaller chunks and complete one clear piece at a time.",
         )
+        # same idea for the next step, ensuring that it is a specific action the student can take immediately,
+        #  or a generic starting point if the AI did not provide one.
         next_step = safe_text(
             t.get("next_step"),
             "Start by outlining the first small part of this task.",
         )
+        # same for the session focus, ensuring that it provides a clear and actionable focus for the next study session,
+        #  or a general recommendation to focus on one section of the task if the AI did
         session_focus = safe_text(
             t.get("session_focus"),
             "Complete one focused section of the task.",
         )
-
+# checks the progression blocks field to ensure it is a non-empty list of strings, 
+# providing a default set of progression stages if the AI did not return valid content.
         progression_blocks = t.get("progression_blocks")
         if not isinstance(progression_blocks, list) or len(progression_blocks) == 0:
             progression_blocks = [
@@ -142,6 +195,8 @@ def get_study_tips_openai(tasks, strictness="medium"):
                 "Complete the main work",
                 "Review and improve the result",
             ]
+        # cleans each progression block into a non-empty string, 
+        # and if all blocks are empty after cleaning, it falls back to the default progression stages.
         else:
             progression_blocks = [
                 str(p).strip() for p in progression_blocks if str(p).strip()
@@ -153,7 +208,7 @@ def get_study_tips_openai(tasks, strictness="medium"):
                     "Complete the main work",
                     "Review and improve the result",
                 ]
-
+# builds the final cleaned tip object with all the validated and cleaned fields, and appends it to the cleaned list that will be returned to the frontend.
         cleaned.append({
             "task_title": task_title,
             "module": module,
@@ -162,5 +217,5 @@ def get_study_tips_openai(tasks, strictness="medium"):
             "progression_blocks": progression_blocks,
             "session_focus": session_focus,
         })
-
+# returns the list of cleaned tips, which will be used by the frontend to display personalized study advice to the user based on their tasks and the AI's analysis.
     return cleaned

@@ -1,20 +1,38 @@
-//Frontend JavaScript for Schedule Generator App
+// This file is the frontend logic/controller for the StudyAI app.
+// It handles user interactions, dynamic UI updates, form validation,
+// and communication with the backend API for logging and file uploads. The main features include:
+// - Dynamic creation of modules, tasks, and availability slots based on user input
+// - Consent management and participant ID generation for research purposes
+// - Logging of user events and interactions for research analysis
+// - Rendering of a weekly calendar view based on the generated schedule sessions from the backend
 
-const API_BASE_URL = "";
+const API_BASE_URL = ""; // makes requests relative to the same origin, can be changed if backend is hosted separately
 
-// DOM elements connecting Javascript to the static HTML elements
+// quick function for sanitisation for user provided strings before inserting into HTML to prevent XSS
+function escapeHTML(str) {
+  const div = document.createElement("div");
+  div.textContent = str ?? "";
+  return div.innerHTML;
+}
+// =============================================================
+// DOM elements connecting Javascript to the static HTML elements and refrences to the consent screen and app shell for showing/hiding based on consent
+//==============================================================
 const modulesContainer = document.getElementById("modulesContainer");
 const addModuleBtn = document.getElementById("addModuleBtn");
 const availabilityContainer = document.getElementById("availabilityContainer");
 const addAvailabilityBtn = document.getElementById("addAvailabilityBtn");
 const regenerateBtn = document.getElementById("regenerateBtn");
-
 const consentScreen = document.getElementById("consentScreen");
 const appShell = document.getElementById("appShell");
 const consentCheckbox = document.getElementById("consentCheckbox");
 const consentContinueBtn = document.getElementById("consentContinueBtn");
+// =============================================================
 
-// logging when app is opened
+// ===================================
+// Logging and Consent Management Functions
+// ===================================
+
+// Checks sessionStorage to only log the "app_opened" event once per session to avoid inflating event counts if user refreshes the page multiple times
 function logAppOpenedOnce() {
   if (sessionStorage.getItem("studyAI_appOpenedLogged") === "true") {
     return;
@@ -24,15 +42,25 @@ function logAppOpenedOnce() {
   sessionStorage.setItem("studyAI_appOpenedLogged", "true");
 }
 
+//===========================
 //Consent  form Functions
+//===========================
+
+// checks if user has given consent by looking in localStorage,
+// this allows us to persist consent across sessions until the user clears their browser data,
+//  giving them control over their data and consent status
 function hasConsented() {
   return localStorage.getItem("studyAI_consentGiven") === "true";
 }
 
+// sets the consent given flag in localStorage when the user gives consent,
+// allowing us to remember their choice in future sessions and show the app instead of the consent screen
 function setConsentGiven() {
   localStorage.setItem("studyAI_consentGiven", "true");
 }
 
+// functions to show/hide the consent screen and app shell based on whether the user has given consent,
+// ensuring that users see the consent form on their first visit and the app on subsequent visits if they have consented
 function showAppAfterConsent() {
   if (consentScreen) consentScreen.style.display = "none";
   if (appShell) appShell.style.display = "block";
@@ -43,8 +71,9 @@ function showConsentScreen() {
   if (appShell) appShell.style.display = "none";
 }
 
-// Participant ID function
-
+// Participant ID function to generate a unique ID for each participant using the Web Crypto API's randomUUID function,
+// and store it in localStorage so it persists across sessions. This allows us to track user interactions
+//  and events in the backend for research analysis while maintaining user privacy.
 function getParticipantId() {
   let participantId = localStorage.getItem("studyAI_participantId");
 
@@ -56,8 +85,11 @@ function getParticipantId() {
   return participantId;
 }
 
-// Research event logging
+// defines the main frontend logging function that sends user interaction events to the backend API.
 async function logEvent(eventType, extraData = {}) {
+  // white lists only save logging fields we expect to have and are relevant for our analysis,
+  //  this prevents issues if the frontend sends unexpected data
+  // and ensures our backend receives clean and consistent event data for research analysis
   const safeExtra = {
     ai_enabled:
       typeof extraData.ai_enabled === "boolean"
@@ -78,17 +110,21 @@ async function logEvent(eventType, extraData = {}) {
     status: typeof extraData.status === "string" ? extraData.status : undefined,
   };
 
+  // builds the final log payload with the participant ID, event type, timestamp, and any extra data fields that passed the whitelist checks.
   const payload = {
     participant_id: getParticipantId(),
     event_type: eventType,
     timestamp: new Date().toISOString(),
     ...safeExtra,
   };
-
+  // removes any undefined fields from the payload to ensure we only send clean data to the backend,
+  //  preventing issues with unexpected or missing data fields in our event logs for research analysis
   Object.keys(payload).forEach((key) => {
     if (payload[key] === undefined) delete payload[key];
   });
 
+  // sends the log event to the backend API using a POST request.
+  // If the request fails, it catches the error and logs it to the console,
   try {
     await fetch(`${API_BASE_URL}/log_event`, {
       method: "POST",
@@ -100,7 +136,12 @@ async function logEvent(eventType, extraData = {}) {
   }
 }
 
-// gets the local date in YYYY-MM-DD format for calendar rendering and deadline comparison so shifting to local timezone and not having issues with UTC offsets
+// ============================================
+// Utility Helper Functions
+// ============================================
+
+// gets the local date in YYYY-MM-DD format for calendar rendering and deadline comparison
+// so shifting to local timezone and not having issues with UTC offsets
 function formatLocalDate(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -109,23 +150,24 @@ function formatLocalDate(date) {
 }
 
 // Deadline Function to build deadline data to show in calendar
-
 function buildUpcomingDeadlines(modules) {
   const deadlines = [];
-
+  // loops through all tasks and skips those without deadlines
+  //  making sure we only consider tasks with deadlines for the upcoming deadlines list,
   modules.forEach((module) => {
     (module.tasks || []).forEach((task) => {
       if (!task.deadline) return;
-
+      // normalizes the deadline and current date to the start of the day (00:00:00)
+      //  to ensure accurate day difference calculations without time component issues,
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-
       const deadlineDate = new Date(task.deadline);
       deadlineDate.setHours(0, 0, 0, 0);
-
+      // calculates how many days remain
       const diffMs = deadlineDate - today;
       const daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
+      // stores the deadline summary object with module name, task title, deadline date, and days remaining until the deadline. for summary bar
       deadlines.push({
         module: module.name,
         title: task.title,
@@ -134,15 +176,17 @@ function buildUpcomingDeadlines(modules) {
       });
     });
   });
-
+  // sorts upcoming deadlines chronologically and returns them
   deadlines.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
   return deadlines;
 }
 
-// UI Creation Functions
-// These functions create the necessary HTML blocks for modules, tasks, and availability slots dynamically
-// when the user clicks the "Add" buttons. They also set up the structure for user input
-// and the remove buttons for each block.
+// =========================================
+// Dyanamic UI Creation Functions
+// =========================================
+
+// creates a new module block in the UI with input fields for module name,
+// importance, assessment brief upload, and tasks.
 function createModuleBlock() {
   const moduleDiv = document.createElement("div");
   moduleDiv.classList.add("card", "shadow-sm", "mb-4");
@@ -193,15 +237,18 @@ function createModuleBlock() {
   </div>
   `;
 
+  // adds the module block to the modules container in the UI,
+  // allowing users to input module details and tasks for their schedule planning
   modulesContainer.appendChild(moduleDiv);
-
-  // Get the tasksContainer for adding the default task
+  // find the tasks container within the newly created module block
+  // so we can add tasks to it when the user clicks "Add Task"
   const tasksContainer = moduleDiv.querySelector(".tasksContainer");
-
-  // Add one task by default
+  // Adds one task by default
   createTaskBlock(tasksContainer);
 }
 
+// creates a new task block within a module with input fields for task title,
+// description, type, progress, difficulty, goal, deadline, and estimated hours.
 function createTaskBlock(container) {
   const taskDiv = document.createElement("div");
   taskDiv.classList.add("task-block");
@@ -290,6 +337,9 @@ function createTaskBlock(container) {
   container.appendChild(taskDiv);
 }
 
+// builds the availability block in the UI with
+// input fields for
+// day, start time, and end time,
 function createAvailabilityBlock() {
   const slot = document.createElement("div");
   slot.classList.add("border", "rounded", "p-3", "mb-3", "bg-body");
@@ -331,87 +381,96 @@ function createAvailabilityBlock() {
   availabilityContainer.appendChild(slot);
 }
 
-/////////////////////
-// upload function helper
-/////////////////////
+// ===============================
+// Upload Helpers
+// ===============================
+
+// creates a FormData object with the uploaded file
+//  and sends it to the backend API for processing.
 async function uploadBriefFile(file, moduleCard) {
   const formData = new FormData();
   formData.append("file", file);
 
+  // finds the upload status UI for the module card and updates it
+  // to show the upload progress,
   const info = moduleCard.querySelector(".briefFileInfo");
   const removeBtn = moduleCard.querySelector(".removeBriefBtn");
-
   info.textContent = "Uploading and extracting text...";
 
+  // sends the file to the backend upload route
   try {
     const res = await fetch(`${API_BASE_URL}/upload_brief`, {
       method: "POST",
       body: formData,
     });
 
+    // Parses the repsonse and throws an error if the upload failed,
     const data = await res.json();
 
     if (!res.ok) {
       throw new Error(data.error || "Failed to upload brief");
     }
 
+    // stores the extracted brief text and filename on the module cards itself
     moduleCard.dataset.briefText = data.brief_text;
     moduleCard.dataset.briefFilename = data.filename;
 
+    // updates the UI and persists the app state
+    // so the uploaded brief info isn't lost on schedule generation or page reload
     info.textContent = `Uploaded: ${data.filename}`;
     removeBtn.classList.remove("d-none");
-
     saveAppState();
+
+    // handles any errors that occur during the upload process,
   } catch (err) {
     console.error("Brief upload failed:", err);
     info.textContent = "Upload failed";
-    console.error("Upload error details:", err);
     alert("Brief upload failed: " + err.message);
   }
 }
 
-///////////////////////////////
+// ==================================
 // Availability preset helpers
-///////////////////////////////
+// ==================================
 
+// creates a blank availability slot in the UI for the user to fill in,
 function addAvailabilitySlot(day, start, end) {
-  // create a new blank slot in the UI
   createAvailabilityBlock();
-
-  // get the slot we just added (last one)
   const blocks = availabilityContainer.querySelectorAll(".availability-block");
   const newBlock = blocks[blocks.length - 1];
-
-  // fill in values
   newBlock.querySelector(".availability-day").value = day;
   newBlock.querySelector(".availability-start").value = start; // "HH:MM"
   newBlock.querySelector(".availability-end").value = end; // "HH:MM"
 }
 
+// clears all availability slots from the UI,
+// used by the preset buttons to reset the availability
+// before adding new preset slots
 function clearAvailabilitySlots() {
   availabilityContainer.innerHTML = "";
 }
 
-///////////////////////////////////////////////////////
-// Functions to get modules from the index page for schedule generation
-///////////////////////////////////////////////////////
+// ===============================
+// Reading the UI Data Functions for Schedule generation in the backend
+// ===============================
 
+// loops through the module and task input fields in the UI to
+// build a structured data object representing the user's
+// modules, tasks, and associated details,
 function getModules() {
   const modules = [];
-
   document
     .querySelectorAll("#modulesContainer > div")
     .forEach((moduleBlock) => {
       const module = {
         name: moduleBlock.querySelector(".module-name").value.trim(),
         importance: Number(
-          moduleBlock.querySelector(".module-importance").value,
+          moduleBlock.querySelector(".module-importance").value, // ensures importance is numeric
         ),
         brief_text: moduleBlock.dataset.briefText || "",
         brief_filename: moduleBlock.dataset.briefFilename || "",
         tasks: [],
       };
-
       moduleBlock
         .querySelectorAll(".tasksContainer > div")
         .forEach((taskBlock) => {
@@ -425,7 +484,7 @@ function getModules() {
             goal: taskBlock.querySelector(".task-goal").value.trim(),
             deadline: taskBlock.querySelector(".task-deadline").value,
             estimated_hours: Number(
-              taskBlock.querySelector(".task-hours").value,
+              taskBlock.querySelector(".task-hours").value, // ensures estimated hours is numeric
             ),
           });
         });
@@ -436,10 +495,8 @@ function getModules() {
   return modules;
 }
 
-///////////////////////////////////////////////////////
-///// functions to get availability slots from the index page for schedule generation
-///////////////////////////////////////////////////////
-
+// Builds the availability payload to get the
+// day, start and end of availability of user
 function getAvailabilitySlots() {
   const slots = [];
 
@@ -456,7 +513,12 @@ function getAvailabilitySlots() {
   return slots;
 }
 
-// Save current website state so schedule doesnt disapear when reset
+// =============================
+// Save/Load App state
+// =============================
+
+// builds a local storage snapshot of current modules, availability, AI enabled
+// and AI strictness for loading
 function saveAppState() {
   const appState = {
     modules: getModules(),
@@ -468,7 +530,8 @@ function saveAppState() {
   localStorage.setItem("studyAIState", JSON.stringify(appState));
 }
 
-// Loads the app state
+// reads saved state and loads it
+// if no saved state creates one starter module + availability slot
 function loadAppState() {
   const saved = localStorage.getItem("studyAIState");
 
@@ -539,7 +602,7 @@ function loadAppState() {
     createModuleBlock();
   }
 
-  // Restore availability
+  // Restores availability
   if (Array.isArray(state.availability) && state.availability.length > 0) {
     state.availability.forEach((slot) => {
       createAvailabilityBlock();
@@ -557,7 +620,7 @@ function loadAppState() {
     createAvailabilityBlock();
   }
 
-  // Restore AI settings
+  // Restores AI settings
   const aiEnabled = document.getElementById("aiEnabled");
   if (aiEnabled) aiEnabled.checked = state.ai_enabled ?? false;
 
@@ -565,10 +628,9 @@ function loadAppState() {
   if (aiStrictness) aiStrictness.value = state.ai_strictness ?? "medium";
 }
 
-////////////////////////////////////////////
-//  Form Validation (basic example, can be expanded)
-////////////////////////////////////////////
-
+// ==================================
+// Validation
+// ==================================
 function validateForm() {
   const modules = getModules();
   const availability = getAvailabilitySlots();
@@ -613,8 +675,11 @@ function validateForm() {
   return null; // No errors
 }
 
+// ===================================
 // Initial setup
+// ===================================
 
+// shows the correct screen depending on prior consent.
 if (hasConsented()) {
   showAppAfterConsent();
   loadAppState();
@@ -633,8 +698,11 @@ if (participantInfo) {
   `;
 }
 
-//Consent button listener
-
+// =========================
+// Consent button listener
+// =========================
+// enables the continue button only when checkbox is ticked
+// on click stores consent, shows app, loads state, logs consent and logs app opened
 if (consentCheckbox && consentContinueBtn) {
   consentCheckbox.addEventListener("change", () => {
     consentContinueBtn.disabled = !consentCheckbox.checked;
@@ -649,14 +717,14 @@ if (consentCheckbox && consentContinueBtn) {
   });
 }
 
-// Handle all availability-related clicks (remove availability)
+// Handles all availability-related clicks (remove availability)
 availabilityContainer.addEventListener("click", (e) => {
   if (e.target.closest(".removeAvailabilityBtn")) {
     e.target.closest(".availability-block").remove();
   }
 });
 
-// Handle all module-related clicks (add task, remove module, remove task)
+// Handles all module-related clicks (add task, remove module, remove task)
 modulesContainer.addEventListener("click", (e) => {
   if (e.target.closest(".addTaskBtn")) {
     const moduleCard = e.target.closest(".card");
@@ -681,6 +749,10 @@ modulesContainer.addEventListener("click", (e) => {
     saveAppState();
   }
 });
+
+// ==========================
+// Brief input change / drag and drop
+// ==========================
 
 // file input change listener for brief uploads
 modulesContainer.addEventListener("change", async (e) => {
@@ -750,10 +822,9 @@ if (aiStrictness) {
   aiStrictness.addEventListener("change", saveAppState);
 }
 
-////////////////////
+// =======================================
 // Availability Preset Buttons
-////////////////////
-
+// =======================================
 document
   .getElementById("presetWeekdayEvenings")
   .addEventListener("click", () => {
@@ -763,7 +834,6 @@ document
       addAvailabilitySlot(day, "18:00", "20:00");
     });
   });
-
 document
   .getElementById("presetWeekdayMornings")
   .addEventListener("click", () => {
@@ -773,7 +843,6 @@ document
       addAvailabilitySlot(day, "09:00", "11:00");
     });
   });
-
 document.getElementById("presetWeekends").addEventListener("click", () => {
   // Sat–Sun 10:00–13:00
   clearAvailabilitySlots();
@@ -781,19 +850,18 @@ document.getElementById("presetWeekends").addEventListener("click", () => {
     addAvailabilitySlot(day, "10:00", "13:00");
   });
 });
-
 document
   .getElementById("presetClearAvailability")
   .addEventListener("click", () => {
     clearAvailabilitySlots();
-    // optional: add one blank slot back so the UI isn't empty
     createAvailabilityBlock();
   });
 
-//////////////////////////////////////////
-// Calendar Renderer Function Helper
-//////////////////////////////////////////
+// ==========================
+// Calendar Rendering Helpers
+// ==========================
 
+// turns time to minutes
 function timeToMinutes(t) {
   const [h, m] = t.split(":").map(Number);
   return h * 60 + m;
@@ -843,19 +911,24 @@ function getModuleColor(moduleName) {
 
   return colors[hash % colors.length];
 }
-////////////////////////////////////////////////
-// Main function to render the weekly calendar view based on the generated schedule sessions
-////////////////////////////////////////////////
+
+// =================================
+// Weekly Calendar Renderer
+// =================================
 
 // allows for changing of weeks in calendar
 let currentCalendarWeekStart = null; // stores the monday of the week currently showing
 let latestCalendarSessions = []; // stores the last generated calendar allowing us to go back and forth
 
+// Defines the main calendar renderin fucntion
+// container = where to render calendar
+// sessions all scheduled sessions
 function renderWeeklyCalendar(container, sessions) {
-  container.innerHTML = ""; // Clear previous content
+  container.innerHTML = ""; // Clears calendar before rendering new one
 
   const valid = sessions.filter((s) => s.date && s.start && s.end); // Only consider sessions with valid date and time
 
+  // if no sessions shows no schedule generated and to add info for generation
   if (valid.length === 0) {
     container.innerHTML = `
       <div class="card shadow-sm">
@@ -871,24 +944,26 @@ function renderWeeklyCalendar(container, sessions) {
     return;
   }
 
+  // gets the first session date
   const earliest = valid
     .map((s) => parseISODate(s.date))
     .sort((a, b) => a - b)[0];
 
+  // if no week is set find monday of the first sessions week
+  // set it as starting point
   if (!currentCalendarWeekStart) {
     currentCalendarWeekStart = getMonday(earliest);
   }
 
-  const weekStart = new Date(currentCalendarWeekStart);
-  const days = buildWeekDays(weekStart);
-
-  // Calendar Header
+  const weekStart = new Date(currentCalendarWeekStart); // monday of current week
+  const days = buildWeekDays(weekStart); // array of 7 days
   const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekEnd.getDate() + 6);
+  weekEnd.setDate(weekEnd.getDate() + 6); // Calculates sunday
 
+  // Calendar Header + Naviagtion
   const header = document.createElement("div");
   header.className = "d-flex justify-content-between align-items-center mb-3";
-
+  // display the date range of the week e.g 01 April - 07 April  and navigation for later use
   header.innerHTML = `
     <div>
       <h5 class="mb-0">Weekly Schedule</h5>
@@ -900,12 +975,11 @@ function renderWeeklyCalendar(container, sessions) {
           day: "2-digit",
           month: "short",
           year: "numeric",
-        })}
+        })} 
       </small>
-    </div>
-
+    </div>    
     <div class="btn-group btn-group-sm" role="group">
-      <button type="button" class="btn btn-outline-secondary" id="prevWeekBtn">
+      <button type="button" class="btn btn-outline-secondary" id="prevWeekBtn"> 
         ← Previous
       </button>
       <button type="button" class="btn btn-outline-secondary" id="nextWeekBtn">
@@ -914,14 +988,16 @@ function renderWeeklyCalendar(container, sessions) {
     </div>
   `;
 
-  // Header row with days of the week
+  // Creates main calendar grid
   const cal = document.createElement("div");
   cal.className = "weekly-calendar";
 
+  // top left blank sqaure for alignment
   const empty = document.createElement("div");
   empty.className = "calendar-header time-col-header";
   cal.appendChild(empty);
 
+  // adds dat headers for each day
   days.forEach((d) => {
     const head = document.createElement("div");
     head.className = "calendar-header";
@@ -934,33 +1010,34 @@ function renderWeeklyCalendar(container, sessions) {
   });
 
   // Time slots (e.g., 8:00 to 20:00)
-
   const startHour = 6;
   const endHour = 22;
-
   const timeCol = document.createElement("div");
   timeCol.className = "time-col";
 
+  // builds the left side time hour slots
   for (let hour = startHour; hour <= endHour; hour++) {
     const label = document.createElement("div");
     label.className = "time-label";
     label.textContent = `${String(hour).padStart(2, "0")}:00`;
     timeCol.appendChild(label);
   }
-
   cal.appendChild(timeCol);
-
   // Add 7 empty day columns with grids for sessions to be placed in
   const hourHeight = 60; // pixels per hour
 
+  // creates column for each day
   days.forEach((dayDate) => {
     const dayCol = document.createElement("div");
     dayCol.className = "day-col";
 
+    // where sessions go
     const grid = document.createElement("div");
     grid.className = "day-grid";
+    // vertical scaling
     grid.style.height = `${(endHour - startHour) * hourHeight}px`;
 
+    // creates the horizontal hour lines
     for (let hour = startHour; hour < endHour; hour++) {
       const line = document.createElement("div");
       line.className = "hour-line";
@@ -968,30 +1045,35 @@ function renderWeeklyCalendar(container, sessions) {
     }
 
     // Place sessions in the correct position
-
     const dayKey = formatLocalDate(dayDate);
     const daySessions = valid.filter((s) => s.date === dayKey);
 
+    //positions each session
     daySessions.forEach((s) => {
       const startMins = timeToMinutes(s.start);
       const endMins = timeToMinutes(s.end);
 
+      // puts sessions in visible range
       const startClamp = Math.max(startMins, startHour * 60);
       const endClamp = Math.min(endMins, endHour * 60);
       if (endClamp <= startClamp) return; // Skip sessions outside of display range
 
+      // converts time to pixels for positioning
       const top = ((startClamp - startHour * 60) / 60) * hourHeight;
       const height = ((endClamp - startClamp) / 60) * hourHeight;
 
+      // creates session block
       const block = document.createElement("div");
       block.className = "calendar-session shadow-sm";
       block.style.top = `${top}px`;
       block.style.height = `${height}px`;
-      //
+
+      // assigns color per module
       const moduleColor = getModuleColor(s.module);
       block.style.backgroundColor = moduleColor.bg;
       block.style.borderLeft = `4px solid ${moduleColor.border}`;
 
+      //session content showing task name, module and time
       block.innerHTML = `
         <div class="title">${s.title ?? "Untitled"}</div>
         <div class="meta">${s.module ?? ""} • ${s.start}–${s.end}</div>
@@ -1010,7 +1092,7 @@ function renderWeeklyCalendar(container, sessions) {
         marker.className = "deadline-marker";
 
         marker.innerHTML = `
-      <div><strong>${d.title}</strong></div>
+      <div><strong>${escapeHTML(d.title)}</strong></div>
       <small>Deadline</small>
     `;
 
@@ -1025,12 +1107,15 @@ function renderWeeklyCalendar(container, sessions) {
     cal.appendChild(dayCol);
   });
 
+  // append everything
   container.appendChild(header);
   container.appendChild(cal);
 
+  // week navigation logic
   const prevWeekBtn = container.querySelector("#prevWeekBtn");
   const nextWeekBtn = container.querySelector("#nextWeekBtn");
 
+  // subtracts 7 days for previous week
   if (prevWeekBtn) {
     prevWeekBtn.addEventListener("click", () => {
       const newWeek = new Date(currentCalendarWeekStart);
@@ -1039,7 +1124,7 @@ function renderWeeklyCalendar(container, sessions) {
       renderWeeklyCalendar(container, latestCalendarSessions);
     });
   }
-
+  // adds 7 days for next week
   if (nextWeekBtn) {
     nextWeekBtn.addEventListener("click", () => {
       const newWeek = new Date(currentCalendarWeekStart);
@@ -1050,37 +1135,48 @@ function renderWeeklyCalendar(container, sessions) {
   }
 }
 
-/////////////////////////////////////////////
+// End of Weekly Calendar Render
+// ===================================
 
+//===================================
+// Generate Schedule FLow
+// ==================================
+
+// Button Refrence and click handler for scheudle generation
 const generateBtn = document.getElementById("generateBtn");
 generateBtn.addEventListener("click", async () => {
+  // frontend validation before anything gets sent
   const error = validateForm();
   if (error) {
-    alert(error); // Simple for now
+    alert(error);
     return;
   }
   // Show loading state
   generateBtn.disabled = true;
   generateBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Generating...`;
-  //////////////////////////
-  //Data Package to get sent to backend
-  //////////////////////////
+
+  // =======================
+  // Builds Payload to send to the backend
+  //========================
   const payload = {
-    modules: getModules(),
-    availability: getAvailabilitySlots(),
-    ai_enabled: document.getElementById("aiEnabled").checked,
+    modules: getModules(), // calls helper function to get modules
+    availability: getAvailabilitySlots(), // calls availability helper to get availability
+    ai_enabled: document.getElementById("aiEnabled").checked, // checks to see if AI is enabled
     ai_strictness: document.getElementById("aiStrictness").value, // low|medium|high
   };
 
+  // checks how many modules and tasks for data loggging
   const moduleCount = payload.modules.length;
   const taskCount = payload.modules.reduce(
     (sum, module) => sum + (module.tasks ? module.tasks.length : 0),
     0,
   );
-  const availabilityCount = payload.availability.length;
 
-  const upcomingDeadlines = buildUpcomingDeadlines(payload.modules);
+  const availabilityCount = payload.availability.length; // counts how many availability slots the user entered
+  const upcomingDeadlines = buildUpcomingDeadlines(payload.modules); // creates a deadline summary list to show for frontend
 
+  // sends the request to the backend sending a http post request to /generate_schedule
+  // and the flask route passes the data to generate schedule in scheduler.py
   try {
     const res = await fetch(`${API_BASE_URL}/generate_schedule`, {
       method: "POST",
@@ -1088,8 +1184,11 @@ generateBtn.addEventListener("click", async () => {
       body: JSON.stringify(payload),
     });
 
+    // once flask replies this line reads the response body and parses it as JSON
+    // having data become a normal JS object
     const data = await res.json();
 
+    // handles backend failure cleanly if something happens to generate schedule failure
     if (!res.ok) {
       throw new Error(data.error || "Failed to generate schedule");
     }
@@ -1097,6 +1196,7 @@ generateBtn.addEventListener("click", async () => {
     // Render schedule nicely in the UI
     const scheduleView = document.getElementById("scheduleView");
 
+    // safety check to prevent crash if anything changes
     if (scheduleView) {
       scheduleView.innerHTML = ""; // clear previous results
 
@@ -1189,8 +1289,8 @@ generateBtn.addEventListener("click", async () => {
                     <li class="mb-2">
                       <div class="d-flex justify-content-between align-items-start">
                         <div>
-                          <div><strong>${d.title}</strong></div>
-                          <small class="text-muted">${d.module} • Due ${d.deadline}</small>
+                          <div><strong>${escapeHTML(d.title)}</strong></div>
+                          <small class="text-muted">${escapeHTML(d.module)} • Due ${escapeHTML(d.deadline)}</small>
                         </div>
                         <span class="badge ${badgeClass}">${label}</span>
                       </div>
@@ -1213,7 +1313,7 @@ generateBtn.addEventListener("click", async () => {
         warningCard.innerHTML = `
           <strong>Schedule warnings</strong>
           <ul class="mb-0 mt-2">
-            ${warnings.map((w) => `<li>${w}</li>`).join("")}
+            ${warnings.map((w) => `<li>${escapeHTML(w)}</li>`).join("")}
           </ul>
         `;
 
@@ -1234,22 +1334,22 @@ generateBtn.addEventListener("click", async () => {
             (t) => `
                       <div class="border rounded p-3 mb-3 bg-light">
           <div class="mb-2">
-            <strong>${t.task_title ?? "Task"}</strong>
-            <span class="text-muted">(${t.module ?? "Module"})</span>
+            <strong>${escapeHTML(t.task_title ?? "Task")}</strong>
+            <span class="text-muted">(${escapeHTML(t.module ?? "Module")})</span>
           </div>
 
           <div class="mb-2">
-            <strong>Tip:</strong> ${t.tip ?? "No tip available."}
+            <strong>Tip:</strong> ${escapeHTML(t.tip ?? "No tip available.")}
           </div>
 
           <div class="mb-2">
             <strong>Next step:</strong>
-            <span class="badge bg-primary ms-1">${t.next_step ?? "Start the first small part."}</span>
+            <span class="badge bg-primary ms-1">${escapeHTML(t.next_step ?? "Start the first small part.")}</span>
           </div>
 
           <div class="mb-2">
             <strong>Session focus:</strong>
-            <span>${t.session_focus ?? "Complete one focused piece of work."}</span>
+            <span>${escapeHTML(t.session_focus ?? "Complete one focused piece of work.")}</span>
           </div>
 
           ${
@@ -1262,7 +1362,7 @@ generateBtn.addEventListener("click", async () => {
                     ${t.progression_blocks
                       .map(
                         (p, i) =>
-                          `<li><strong>Step ${i + 1}:</strong> ${p}</li>`,
+                          `<li><strong>Step ${i + 1}:</strong> ${escapeHTML(p)}</li>`,
                       )
                       .join("")}
                   </ul>
@@ -1311,7 +1411,7 @@ generateBtn.addEventListener("click", async () => {
               ${data.ai_suggestions
                 .map(
                   (s) =>
-                    `<li><strong>${s.task_title ?? "Task"}</strong>: ${
+                    `<li><strong>${escapeHTML(s.task_title ?? "Task")}</strong>: ${
                       s.explanation ?? JSON.stringify(s)
                     }</li>`,
                 )
