@@ -36,6 +36,45 @@ from scheduler import generate_schedule # imports the generate_schedule function
 
 app = Flask(__name__) # creates a new Flask application instance, which will be used to define routes and handle incoming requests.
 
+# ================================
+# AI USAGE LIMIT helpers 
+# ================================
+
+AI_USAGE_LIMIT = 20 # set limit 
+# stores the path to the JSON file that persists per-participant usage counts, located in the logs directory
+AI_USAGE_FILE = os.path.join(os.path.dirname(__file__), "logs", "ai_usage.json") 
+
+# reads the current AI usage data form the JSON file
+# returns participants IDs usage counts
+# recovers gracefully if any error occurs
+def load_ai_usage():
+    if not os.path.exists(AI_USAGE_FILE):
+        return {}
+    with open(AI_USAGE_FILE, "r", encoding="utf-8") as f:
+        try:
+            return json.load(f)
+        except json.JSONDecodeError:
+            return {}
+
+# writes the AI usage back to the JSON file
+# creating the logs directory first if it does not already exist 
+# this ensures that usage counts persist through requests
+def save_ai_usage(usage):
+    os.makedirs(os.path.dirname(AI_USAGE_FILE), exist_ok=True)
+    with open(AI_USAGE_FILE, "w", encoding="utf-8") as f:
+        json.dump(usage, f)
+
+# gets the current number of AI assisted generations used by given participant 
+def get_ai_usage_count(participant_id):
+    return load_ai_usage().get(participant_id, 0)
+
+# adds the tally of AI usages by 1 called after a succesful AI-assisted generated schedule 
+def increment_ai_usage(participant_id):
+    usage = load_ai_usage()
+    usage[participant_id] = usage.get(participant_id, 0) + 1
+    save_ai_usage(usage)
+
+
 # ======================================
 # Brief upload configuration and helpers
 # ======================================
@@ -326,6 +365,7 @@ def generate():
     availability = data.get('availability', [])
     ai_enabled = data.get('ai_enabled', False)
     ai_strictness = data.get("ai_strictness", "medium")
+    participant_id = str(data.get("participant_id", "")).strip()
 
 # checks again that modules and availability are present and non-empty,
 #  providing a final safeguard before attempting to generate the schedule,
@@ -333,8 +373,20 @@ def generate():
     if not modules or not availability:
         return jsonify({'error': 'Modules and availability are required'}), 400
     
+# checks to see if participant has reached AI usage limit
+    ai_limit_reached = False 
+    if ai_enabled and participant_id:
+        current_usage = get_ai_usage_count(participant_id)
+        if current_usage >= AI_USAGE_LIMIT:
+            ai_enabled = False
+            ai_limit_reached = True
+        else:
+            increment_ai_usage(participant_id)
+
+
 # hanedles the validated data and calls the generated schedule function in scheduler.py, passing in the modules, availability, and AI configuration.
     schedule = generate_schedule(modules, availability, ai_enabled, ai_strictness)
+    schedule["ai_limit_reached"] = ai_limit_reached
 
 # writes  a simple backend log message showing how many sessions were generated in the schedule. 
     logger.info(f"Generated schedule with {len(schedule.get('sessions', []))} sessions")

@@ -1163,6 +1163,7 @@ generateBtn.addEventListener("click", async () => {
     availability: getAvailabilitySlots(), // calls availability helper to get availability
     ai_enabled: document.getElementById("aiEnabled").checked, // checks to see if AI is enabled
     ai_strictness: document.getElementById("aiStrictness").value, // low|medium|high
+    participant_id: getParticipantId(), // gets particapant ID for checking AI usage limit
   };
 
   // checks how many modules and tasks for data loggging
@@ -1212,6 +1213,18 @@ generateBtn.addEventListener("click", async () => {
   `;
 
       scheduleView.appendChild(badgeWrapper);
+
+      // shows message if participant has hit their AI usage limit
+      if (data.ai_limit_reached) {
+        const limitMsg = document.createElement("div");
+        limitMsg.className = "alert alert-warning mb-3";
+        limitMsg.innerHTML = `
+          <strong>AI usage limit reached</strong><br>
+          You have used all 20 of your AI generations.
+          Your schedule has been generated using the standard rule-based method instead.
+        `;
+        scheduleView.appendChild(limitMsg);
+      }
 
       //////////////////////////////////////
       // Schedule summary bar (showing small card of what the schedule has generated)
